@@ -1,0 +1,17 @@
+{
+  "name": "Puente de Señas",
+  "short_name": "Puente de Señas",
+  "description": "Conversa en lengua de señas: la cámara reconoce las señas que le enseñas y la app responde mostrando señas en video.",
+  "lang": "es",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0B2B2E",
+  "theme_color": "#0B2B2E",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

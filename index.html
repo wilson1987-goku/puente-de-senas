@@ -1,0 +1,483 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Puente de Señas</title>
+<meta name="description" content="Conversa en lengua de señas: la cámara reconoce las señas que le enseñas y la app responde mostrando señas en video.">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="theme-color" content="#0B2B2E">
+<style>
+/* Dos personas frente al mismo teléfono: texto grande, alto contraste, todo visual. */
+@font-face{font-family:"Bricolage";src:url(fonts/bricolage.woff2) format("woff2");font-weight:200 800;font-display:swap}
+@font-face{font-family:"Figtree";src:url(fonts/figtree.woff2) format("woff2");font-weight:300 900;font-display:swap}
+:root{
+  --bg:#F2F6F4; --paper:#FFFFFF; --soft:#E6EEEB; --line:#CBD9D4; --ink:#0B2B2E; --muted:#4D6668;
+  --teal:#0C7C80; --sun:#FFC53D; --good:#0B8A5F; --bad:#C8364B; --onTeal:#FFFFFF;
+  --display:"Bricolage","Avenir Next","Segoe UI",system-ui,sans-serif;
+  --text:"Figtree","Segoe UI",system-ui,-apple-system,Roboto,sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root{ --bg:#071B1D; --paper:#0E282B; --soft:#15363A; --line:#24494E; --ink:#EEF7F5; --muted:#9DB8B8;
+    --teal:#35C2C4; --sun:#FFC53D; --good:#3DDC97; --bad:#FF6B7F; --onTeal:#04201F; color-scheme:dark; }
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.5 var(--text)}
+main{max-width:760px;margin:0 auto;padding:16px 14px 120px;display:flex;flex-direction:column;gap:14px}
+h1,h2,h3{font-family:var(--display);margin:0;letter-spacing:-.02em;line-height:1.15;text-wrap:balance}
+h1{font-size:21px} h2{font-size:22px} h3{font-size:17px}
+p{margin:0}
+.sub{color:var(--muted)}
+.top{display:flex;gap:12px;align-items:center}
+.top img{border-radius:13px;flex:none}
+.top .grow small{display:block;color:var(--muted);font-size:14px}
+.card{background:var(--paper);border:1.5px solid var(--line);border-radius:20px;padding:16px;display:flex;flex-direction:column;gap:12px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.grow{flex:1 1 180px;min-width:0}
+.tag{font:700 12px/1 var(--text);letter-spacing:.12em;text-transform:uppercase;color:var(--teal)}
+button{font:650 16px/1.2 var(--text);color:var(--ink);background:var(--soft);border:1.5px solid var(--line);border-radius:14px;padding:12px 16px;cursor:pointer}
+button.primary{background:var(--teal);border-color:var(--teal);color:var(--onTeal)}
+button.sun{background:var(--sun);border-color:var(--sun);color:#2B1D00}
+button.danger{color:var(--bad)}
+button:disabled{opacity:.45;cursor:not-allowed}
+button:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px solid var(--sun);outline-offset:2px}
+input[type=text],textarea{font:inherit;color:var(--ink);background:var(--soft);border:1.5px solid var(--line);border-radius:14px;padding:12px 14px;width:100%;min-width:0}
+textarea{min-height:92px;resize:vertical;font-size:19px}
+label{display:flex;gap:8px;align-items:center;font-weight:600}
+input[type=checkbox]{width:20px;height:20px;accent-color:var(--teal)}
+input[type=range]{accent-color:var(--teal);flex:1}
+
+/* Cámara */
+.stage{position:relative;background:#000;border-radius:16px;overflow:hidden;aspect-ratio:4/3}
+.stage video,.stage canvas{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform:scaleX(-1)}
+.stage .badge{position:absolute;left:10px;top:10px;background:rgba(0,0,0,.62);color:#fff;border-radius:999px;padding:6px 12px;font-weight:700;font-size:14px}
+.stage .count{position:absolute;inset:0;display:grid;place-items:center;font:800 110px/1 var(--display);color:#fff;text-shadow:0 4px 24px rgba(0,0,0,.7)}
+.stage .cover{position:absolute;inset:0;display:grid;place-items:center;padding:18px;text-align:center;color:#fff;gap:10px;align-content:center}
+.now{font:800 clamp(30px,9vw,54px)/1.05 var(--display);letter-spacing:-.03em;min-height:1.1em;color:var(--teal)}
+.frase{font:650 clamp(22px,6vw,32px)/1.25 var(--display);min-height:2.5em;background:var(--soft);border-radius:14px;padding:12px 14px;word-break:break-word}
+.frase:empty::before{content:"Aquí aparece lo que la persona dice en señas.";color:var(--muted);font:500 17px/1.4 var(--text)}
+
+/* Responder */
+#player{background:#000;border-radius:16px;overflow:hidden;aspect-ratio:4/3;display:grid;place-items:center;position:relative}
+#player video{width:100%;height:100%;object-fit:cover;transform:scaleX(-1)}
+#player .word{color:#fff;font:800 clamp(34px,11vw,64px)/1.05 var(--display);text-align:center;padding:16px;word-break:break-word}
+#player .cap{position:absolute;left:0;right:0;bottom:0;padding:10px 14px;background:linear-gradient(transparent,rgba(0,0,0,.8));color:#fff;font:700 22px/1.2 var(--display);text-align:center}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{padding:6px 12px;border-radius:999px;border:1.5px solid var(--line);background:var(--soft);font-weight:650;font-size:15px}
+.chip.on{background:var(--teal);border-color:var(--teal);color:var(--onTeal)}
+.chip.txt{border-style:dashed;color:var(--muted)}
+.chip.on,.chip.txt.on{color:var(--onTeal)}
+#bigText{position:fixed;inset:0;z-index:20;background:var(--ink);color:var(--bg);display:grid;place-items:center;padding:24px;text-align:center;font:800 clamp(34px,10vw,84px)/1.1 var(--display);word-break:break-word;cursor:pointer}
+
+/* Mis señas */
+.sign{display:flex;gap:10px;align-items:center;border:1.5px solid var(--line);border-radius:14px;padding:8px 10px;background:var(--soft)}
+.sign b{flex:1;min-width:0;font-size:17px;overflow-wrap:anywhere}
+.sign small{color:var(--muted)}
+.sign button{padding:8px 11px;font-size:14px}
+#signList{display:flex;flex-direction:column;gap:8px}
+.steps{margin:0;padding-left:22px;display:flex;flex-direction:column;gap:8px}
+.note{border-left:5px solid var(--sun);background:var(--soft);border-radius:0 12px 12px 0;padding:11px 14px}
+.msg{min-height:1.5em;font-weight:600} .msg.err{color:var(--bad)}
+
+nav{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(10px + env(safe-area-inset-bottom));width:min(520px,calc(100% - 20px));display:grid;grid-template-columns:repeat(4,1fr);gap:4px;padding:6px;border-radius:22px;background:var(--paper);border:1.5px solid var(--line);box-shadow:0 10px 30px rgba(0,0,0,.18);z-index:10}
+nav button{border:0;background:none;border-radius:16px;padding:8px 2px;display:flex;flex-direction:column;gap:3px;align-items:center;font-size:12.5px;color:var(--muted)}
+nav button svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+nav button[aria-selected=true]{background:var(--teal);color:var(--onTeal)}
+@media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<main>
+  <header class="top">
+    <img src="icon.svg" alt="" width="48" height="48">
+    <div class="grow"><h1>Puente de Señas</h1><small>Conversar entre señas y voz</small></div>
+    <button id="installBtn" hidden>Instalar</button>
+  </header>
+  <p id="envMsg" class="note" hidden></p>
+
+  <!-- Cámara compartida por Entender y Mis señas -->
+  <section class="card" id="camCard">
+    <div class="stage">
+      <video id="video" playsinline muted></video>
+      <canvas id="overlay"></canvas>
+      <span class="badge" id="camBadge" hidden></span>
+      <div class="count" id="count" hidden></div>
+      <div class="cover" id="camCover">
+        <p style="font:700 20px/1.3 var(--display)">La cámara mira las manos y reconoce las señas.</p>
+        <button class="sun" id="camStart">Encender cámara</button>
+        <p id="camMsg" style="font-size:15px;opacity:.85">El video no se envía a ningún lugar: todo se procesa en este dispositivo.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="tab-entender" class="card">
+    <span class="tag">Entender</span>
+    <h2>Lo que dicen las manos</h2>
+    <p class="now" id="now" aria-live="polite"></p>
+    <p class="frase" id="frase" aria-live="polite"></p>
+    <div class="row">
+      <button class="primary" id="speakBtn">Leer en voz alta</button>
+      <button id="spaceBtn">Espacio</button>
+      <button id="backBtn">Borrar última</button>
+      <button id="clearBtn">Limpiar</button>
+    </div>
+    <div class="row">
+      <label><input type="checkbox" id="autoSpeak" checked> Decir cada seña en voz alta</label>
+    </div>
+    <label>Exigencia <input type="range" id="sens" min="60" max="150" value="100"> <span id="sensLab" class="sub"></span></label>
+    <p class="sub" id="entMsg"></p>
+  </section>
+
+  <section id="tab-responder" class="card" hidden>
+    <span class="tag">Responder</span>
+    <h2>Tu respuesta, en señas</h2>
+    <textarea id="reply" placeholder="Escribe o dicta lo que quieres responder" aria-label="Respuesta"></textarea>
+    <div class="row">
+      <button class="primary" id="playBtn">Mostrar en señas</button>
+      <button id="dictBtn">Dictar con la voz</button>
+      <button id="bigBtn">Mostrar texto grande</button>
+    </div>
+    <p class="msg" id="repMsg"></p>
+    <div id="player" hidden><video id="clip" playsinline muted></video><div class="word" id="clipWord" hidden></div><div class="cap" id="clipCap"></div></div>
+    <div class="chips" id="repChips"></div>
+    <p class="sub">Las palabras con borde punteado todavía no tienen seña guardada: se muestran escritas, o deletreadas si ya enseñaste el abecedario.</p>
+  </section>
+
+  <section id="tab-senas" class="card" hidden>
+    <span class="tag">Mis señas</span>
+    <h2>Enséñale una seña a la app</h2>
+    <p class="sub">Escribe la palabra o letra y haz la seña cinco veces frente a la cámara. La app guarda el movimiento de las manos para reconocerla y un video corto para responder con ella.</p>
+    <div class="row">
+      <input class="grow" id="newName" type="text" placeholder="Palabra o letra, por ejemplo: hola" aria-label="Nombre de la seña" maxlength="40">
+      <button class="primary" id="recBtn">Grabar seña</button>
+    </div>
+    <p class="msg" id="recMsg"></p>
+    <h3 id="listH">Señas guardadas</h3>
+    <div id="signList"></div>
+    <div class="row">
+      <button id="expBtn">Guardar copia de mis señas</button>
+      <label class="grow" style="font-weight:650"><span class="sub">Cargar copia:</span> <input type="file" id="impFile" accept=".json,application/json"></label>
+    </div>
+    <p class="msg" id="expMsg"></p>
+  </section>
+
+  <section id="tab-ayuda" class="card" hidden>
+    <span class="tag">Cómo funciona</span>
+    <h2>Un puente entre señas y voz</h2>
+    <ol class="steps">
+      <li><b>Enseña las señas.</b> En “Mis señas”, una persona que sepa lengua de señas graba cada seña cinco veces. Empieza por las más usadas: hola, gracias, sí, no, ayuda, nombre, y el abecedario.</li>
+      <li><b>Entender.</b> La persona sorda hace señas frente a la cámara. La app las reconoce, arma la frase y la lee en voz alta.</li>
+      <li><b>Responder.</b> Escribe o dicta tu respuesta. La app la muestra seña por seña con los videos guardados; lo que no tenga seña lo deletrea o lo muestra escrito en grande.</li>
+    </ol>
+    <p class="note"><b>Importante.</b> La app no trae señas de fábrica: reconoce únicamente las que se le enseñan, tal como se usan en tu comunidad (por ejemplo, la Lengua de Señas Colombiana). Sigue las manos, no las expresiones de la cara ni la gramática completa de la lengua, así que sirve para conversaciones sencillas y no reemplaza a un intérprete en trámites médicos, legales o de emergencia.</p>
+    <p class="sub">Consejos: buena luz, fondo sencillo, las manos completas dentro de la imagen y la misma distancia que usaste al enseñar la seña.</p>
+  </section>
+</main>
+
+<nav role="tablist" aria-label="Secciones">
+  <button role="tab" data-tab="entender" aria-selected="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>Entender</button>
+  <button role="tab" data-tab="responder" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a8 8 0 0 1-12 7l-5 1 1-4.500A8 8 0 1 1 21 12Z"/></svg>Responder</button>
+  <button role="tab" data-tab="senas" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 13V5.500a1.500 1.500 0 0 1 3 0V11m0-1V4.500a1.500 1.500 0 0 1 3 0V11m0-4.500a1.500 1.500 0 0 1 3 0V12m0-2a1.500 1.500 0 0 1 3 0v4a7 7 0 0 1-7 7h-1a6 6 0 0 1-5-2.700L4 14a1.600 1.600 0 0 1 2.600-1.800L8 14"/></svg>Mis señas</button>
+  <button role="tab" data-tab="ayuda" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.500 9.500a2.500 2.500 0 1 1 3.500 2.300c-.700.400-1 1-1 1.700M12 17h.01"/></svg>Ayuda</button>
+</nav>
+<div id="bigText" hidden></div>
+
+<script type="module">
+const $ = id => document.getElementById(id);
+const msg = (id, t, err) => { const e = $(id); e.textContent = t; e.classList.toggle('err', !!err); };
+const norm = s => s.toLowerCase().replace(/ñ/g, '\u0001').normalize('NFD').replace(/\u0001/g, 'ñ').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9ñ ]/g, ' ').replace(/\s+/g, ' ').trim();
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+/* ---------- Almacén (IndexedDB): una fila por seña ---------- */
+const db = await new Promise((ok, no) => {
+  const r = indexedDB.open('puente-senas', 1);
+  r.onupgradeneeded = () => r.result.createObjectStore('signs', { keyPath: 'key' });
+  r.onsuccess = () => ok(r.result); r.onerror = () => no(r.error);
+}).catch(() => null);
+const tx = (mode, fn) => new Promise((ok, no) => { const t = db.transaction('signs', mode), q = fn(t.objectStore('signs')); t.oncomplete = () => ok(q.result); t.onerror = () => no(t.error); });
+let SIGNS = db ? await tx('readonly', s => s.getAll()) : [];   // {key, name, samples:[Float32Array], th, clip:Blob|null}
+const putSign = s => db && tx('readwrite', st => st.put(s));
+const delSign = k => db && tx('readwrite', st => st.delete(k));
+
+/* ---------- Rasgos de las manos ---------- */
+const T = 8, WIN = 1200, HAND = 66, FRAME = HAND * 2;     // 63 coordenadas + 2 de desplazamiento + 1 de presencia, por mano
+// Convierte el resultado del detector en hasta dos manos normalizadas (posición y tamaño no importan).
+function frameHands(lms, aspect) {
+  const hs = lms.map(lm => {
+    const w = lm[0], sc = Math.hypot((lm[9].x - w.x) * aspect, lm[9].y - w.y) || 1e-6, v = new Float32Array(63);
+    for (let i = 0; i < 21; i++) { v[i * 3] = (lm[i].x - w.x) * aspect / sc; v[i * 3 + 1] = (lm[i].y - w.y) / sc; v[i * 3 + 2] = lm[i].z * aspect / sc; }
+    return { v, x: w.x * aspect, y: w.y, sc };
+  }).sort((a, b) => a.x - b.x);
+  return hs.slice(0, 2);
+}
+// Resume una ventana de cuadros en un vector fijo: forma de la mano en T instantes + cuánto se movió.
+function windowVec(frames) {
+  const out = new Float32Array(T * FRAME), first = [null, null];
+  for (let k = 0; k < T; k++) {
+    const f = frames[Math.round(k * (frames.length - 1) / (T - 1))];
+    for (let h = 0; h < 2; h++) {
+      const hd = f[h], o = k * FRAME + h * HAND; if (!hd) continue;
+      first[h] ||= hd;
+      out.set(hd.v, o);
+      out[o + 63] = (hd.x - first[h].x) / first[h].sc; out[o + 64] = (hd.y - first[h].y) / first[h].sc;
+      out[o + 65] = 3;
+    }
+  }
+  return out;
+}
+const dist = (a, b) => { let s = 0; for (let i = 0; i < a.length; i++) { const d = a[i] - b[i]; s += d * d; } return Math.sqrt(s / T); };
+function threshold(samples) {
+  let mx = 0; for (let i = 0; i < samples.length; i++) for (let j = i + 1; j < samples.length; j++) mx = Math.max(mx, dist(samples[i], samples[j]));
+  return Math.min(2.4, Math.max(0.9, mx * 1.35));
+}
+function classify(vec, factor = 1) {
+  let best = null, second = Infinity;
+  for (const s of SIGNS) {
+    let d = Infinity; for (const x of s.samples) d = Math.min(d, dist(vec, x));
+    if (!best || d < best.d) { if (best) second = best.d; best = { s, d }; } else if (d < second) second = d;
+  }
+  if (!best || best.d > best.s.th * factor) return null;
+  if (second < Infinity && best.d > second * 0.92) return null;      // demasiado parecida a otra seña: mejor no adivinar
+  return best.s;
+}
+
+/* ---------- Cámara y detector ---------- */
+let landmarker = null, stream = null, buf = [], lastSeen = 0;
+const video = $('video'), cv = $('overlay'), g = cv.getContext('2d');
+const BONES = [[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[5,9],[9,10],[10,11],[11,12],[9,13],[13,14],[14,15],[15,16],[13,17],[17,18],[18,19],[19,20],[0,17]];
+async function startCam() {
+  $('camStart').disabled = true; $('camMsg').textContent = 'Preparando el reconocimiento de manos…';
+  try {
+    if (!landmarker) {
+      const { FilesetResolver, HandLandmarker } = await import('./lib/vision_bundle.mjs');
+      const fs = await FilesetResolver.forVisionTasks('./lib/wasm');
+      const mk = delegate => HandLandmarker.createFromOptions(fs, { baseOptions: { modelAssetPath: './lib/hand_landmarker.task', delegate }, runningMode: 'VIDEO', numHands: 2 });
+      landmarker = await mk('GPU').catch(() => mk('CPU'));
+    }
+    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } }, audio: false });
+    video.srcObject = stream; await video.play();
+    $('camCover').hidden = true; requestAnimationFrame(loop);
+  } catch (e) {
+    $('camStart').disabled = false;
+    $('camMsg').textContent = e.name === 'NotAllowedError' ? 'No hay permiso para usar la cámara. Actívalo en los ajustes del navegador y vuelve a intentar.' : 'No se pudo encender la cámara: ' + (e.message || e.name);
+  }
+}
+$('camStart').onclick = startCam;
+let lastT = -1;
+function loop() {
+  if (!stream) return;
+  requestAnimationFrame(loop);
+  if (video.readyState < 2 || video.currentTime === lastT) return;
+  lastT = video.currentTime;
+  const now = performance.now(), res = landmarker.detectForVideo(video, now);
+  onHands(res.landmarks || [], now, video.videoWidth / video.videoHeight || 4 / 3);
+}
+// Punto único de entrada de cada cuadro (también lo usan las pruebas).
+function onHands(lms, now, aspect) {
+  drawHands(lms);
+  const hs = frameHands(lms, aspect);
+  if (hs.length) lastSeen = now;
+  buf.push({ t: now, h: hs }); while (buf.length && buf[0].t < now - WIN) buf.shift();
+  if (!recording) recognize(now);
+}
+function drawHands(lms) {
+  const w = cv.width = cv.clientWidth, h = cv.height = cv.clientHeight; g.clearRect(0, 0, w, h);
+  const vw = video.videoWidth || 4, vh = video.videoHeight || 3, sc = Math.max(w / vw, h / vh), ox = (w - vw * sc) / 2, oy = (h - vh * sc) / 2;
+  const P = p => [ox + p.x * vw * sc, oy + p.y * vh * sc];
+  g.lineWidth = 3; g.strokeStyle = '#FFC53D'; g.fillStyle = '#fff';
+  for (const lm of lms) {
+    g.beginPath(); for (const [a, b] of BONES) { g.moveTo(...P(lm[a])); g.lineTo(...P(lm[b])); } g.stroke();
+    for (const p of lm) { g.beginPath(); g.arc(...P(p), 3.5, 0, 7); g.fill(); }
+  }
+}
+function currentVec() {
+  const fr = buf.filter(b => b.h.length); if (fr.length < 6 || fr.length < buf.length * 0.7) return null;
+  return windowVec(fr.map(b => b.h));
+}
+
+/* ---------- Entender: de señas a texto y voz ---------- */
+let words = [], cand = null, candN = 0, lastEmit = null, lastCheck = 0;
+const say = t => { if (!('speechSynthesis' in window) || !t) return; const u = new SpeechSynthesisUtterance(t); u.lang = 'es-CO'; const v = speechSynthesis.getVoices().find(v => v.lang.startsWith('es')); if (v) u.voice = v; speechSynthesis.speak(u); };
+// Las letras sueltas se juntan en una palabra; las palabras se separan con espacio.
+const sentence = () => words.reduce((s, w, i) => s + (i && !(w.length === 1 && words[i - 1].length === 1) ? ' ' : '') + (w === ' ' ? '' : w), '').replace(/\s+/g, ' ').trim();
+function paintFrase() { $('frase').textContent = sentence(); }
+function recognize(now) {
+  if (now - lastSeen > 900) { lastEmit = null; cand = null; if ($('now').textContent) $('now').textContent = ''; }
+  if (now - lastCheck < 220 || !SIGNS.length) return; lastCheck = now;
+  const vec = currentVec(); if (!vec) return;
+  const s = classify(vec, $('sens').value / 100);
+  if (!s) { cand = null; candN = 0; return; }
+  if (cand === s.key) candN++; else { cand = s.key; candN = 1; }
+  if (candN >= 2 && lastEmit !== s.key) {
+    lastEmit = s.key; words.push(s.name); $('now').textContent = s.name; paintFrase();
+    if ($('autoSpeak').checked) say(s.name);
+  }
+}
+$('speakBtn').onclick = () => say(sentence());
+$('spaceBtn').onclick = () => { if (words.length && words.at(-1) !== ' ') words.push(' '); lastEmit = null; };
+$('backBtn').onclick = () => { words.pop(); lastEmit = null; paintFrase(); };
+$('clearBtn').onclick = () => { words = []; lastEmit = null; $('now').textContent = ''; paintFrase(); };
+const paintSens = () => { const v = +$('sens').value; $('sensLab').textContent = v < 90 ? 'estricta' : v > 115 ? 'flexible' : 'normal'; };
+$('sens').oninput = paintSens; paintSens();
+
+/* ---------- Mis señas: enseñar ---------- */
+let recording = false;
+async function captureSample() {
+  for (let n = 3; n > 0; n--) { $('count').hidden = false; $('count').textContent = n; await sleep(800); }
+  $('count').textContent = '●'; buf = []; await sleep(WIN + 100); $('count').hidden = true;
+  return currentVec();
+}
+function recordClip(ms) {
+  if (!window.MediaRecorder || !stream) return Promise.resolve(null);
+  return new Promise(ok => {
+    try {
+      const mr = new MediaRecorder(stream), parts = [];
+      mr.ondataavailable = e => e.data.size && parts.push(e.data);
+      mr.onstop = () => ok(parts.length ? new Blob(parts, { type: mr.mimeType || 'video/webm' }) : null);
+      mr.onerror = () => ok(null);
+      mr.start(); setTimeout(() => mr.state !== 'inactive' && mr.stop(), ms);
+    } catch { ok(null); }
+  });
+}
+$('recBtn').onclick = async () => {
+  const name = $('newName').value.trim().replace(/\s+/g, ' '), key = norm(name);
+  if (!key) return msg('recMsg', 'Escribe primero la palabra o letra de la seña.', true);
+  if (!stream) { msg('recMsg', 'Enciende la cámara para grabar la seña.', true); return $('camStart').focus(); }
+  recording = true; $('recBtn').disabled = true; $('camCard').scrollIntoView({ block: 'start', behavior: 'smooth' });
+  const samples = []; let clip = null, fails = 0;
+  try {
+    while (samples.length < 5 && fails < 4) {
+      $('camBadge').hidden = false; $('camBadge').textContent = `“${name}” · toma ${samples.length + 1} de 5`;
+      msg('recMsg', `Toma ${samples.length + 1} de 5: prepárate y haz la seña cuando aparezca el punto.`);
+      const clipP = samples.length === 0 && !clip ? sleep(2400).then(() => recordClip(WIN + 300)) : null;
+      const v = await captureSample();
+      if (clipP) clip = await clipP;
+      if (v) samples.push(v); else { fails++; clip = samples.length ? clip : null; msg('recMsg', 'No vi bien las manos. Acércate, busca buena luz y repite.', true); await sleep(1200); }
+    }
+    if (samples.length < 5) return msg('recMsg', 'No se pudo grabar la seña: las manos no se vieron con claridad. Inténtalo de nuevo con más luz.', true);
+    const old = SIGNS.find(s => s.key === key), sign = { key, name, samples, th: threshold(samples), clip: clip || old?.clip || null };
+    await putSign(sign); SIGNS = SIGNS.filter(s => s.key !== key).concat(sign);
+    $('newName').value = ''; renderSigns();
+    msg('recMsg', `Seña “${name}” guardada${sign.clip ? ' con su video' : ' (este navegador no permitió guardar el video)'}. Pruébala en Entender.`);
+  } finally { recording = false; $('recBtn').disabled = false; $('camBadge').hidden = true; $('count').hidden = true; buf = []; }
+};
+function renderSigns() {
+  const box = $('signList'); box.replaceChildren();
+  $('listH').textContent = SIGNS.length ? `Señas guardadas (${SIGNS.length})` : 'Señas guardadas';
+  if (!SIGNS.length) { const p = document.createElement('p'); p.className = 'sub'; p.textContent = 'Todavía no hay señas. Graba la primera arriba.'; box.append(p); }
+  for (const s of [...SIGNS].sort((a, b) => a.key.localeCompare(b.key, 'es'))) {
+    const d = document.createElement('div'), b = document.createElement('b'), sm = document.createElement('small'), see = document.createElement('button'), del = document.createElement('button');
+    d.className = 'sign'; b.textContent = s.name; sm.textContent = s.clip ? 'con video' : 'sin video';
+    see.textContent = 'Ver'; see.disabled = !s.clip; see.onclick = () => { tab('responder'); playSeq([{ sign: s, text: s.name }]); };
+    del.textContent = 'Borrar'; del.className = 'danger';
+    del.onclick = async () => { if (!confirm(`¿Borrar la seña “${s.name}”?`)) return; await delSign(s.key); SIGNS = SIGNS.filter(x => x !== s); renderSigns(); };
+    d.append(b, sm, see, del); box.append(d);
+  }
+  $('entMsg').textContent = SIGNS.length ? `La app conoce ${SIGNS.length} ${SIGNS.length === 1 ? 'seña' : 'señas'}.` : 'La app todavía no conoce ninguna seña. Enséñale la primera en “Mis señas”.';
+}
+
+/* ---------- Copia de seguridad (incluye los videos) ---------- */
+const b64 = blob => new Promise(ok => { const r = new FileReader(); r.onload = () => ok(r.result); r.readAsDataURL(blob); });
+$('expBtn').onclick = async () => {
+  if (!SIGNS.length) return msg('expMsg', 'No hay señas para guardar.', true);
+  const data = { app: 'puente-senas', v: 1, signs: [] };
+  for (const s of SIGNS) data.signs.push({ key: s.key, name: s.name, th: s.th, samples: s.samples.map(x => Array.from(x, n => +n.toFixed(4))), clip: s.clip ? await b64(s.clip) : null });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(data)], { type: 'application/json' })); a.download = 'mis-senas.json'; a.click();
+  msg('expMsg', 'Copia guardada en tus descargas. Sirve para pasar las señas a otro teléfono.');
+};
+$('impFile').onchange = async e => {
+  const f = e.target.files[0]; if (!f) return;
+  try {
+    const data = JSON.parse(await f.text()); if (data.app !== 'puente-senas' || !Array.isArray(data.signs)) throw 0;
+    let n = 0;
+    for (const s of data.signs) {
+      if (typeof s.name !== 'string' || !Array.isArray(s.samples) || !s.samples.length || s.samples.some(x => x.length !== T * FRAME)) continue;
+      const key = norm(s.name); if (!key) continue;
+      const samples = s.samples.map(x => Float32Array.from(x));
+      const clip = typeof s.clip === 'string' && s.clip.startsWith('data:video/') ? await (await fetch(s.clip)).blob() : null;
+      const sign = { key, name: s.name.slice(0, 40), samples, th: threshold(samples), clip };
+      await putSign(sign); SIGNS = SIGNS.filter(x => x.key !== key).concat(sign); n++;
+    }
+    renderSigns(); msg('expMsg', `Se cargaron ${n} señas.`);
+  } catch { msg('expMsg', 'Ese archivo no es una copia de señas de esta app.', true); }
+  e.target.value = '';
+};
+
+/* ---------- Responder: de texto o voz a señas ---------- */
+function plan(text) {
+  const raw = text.split(/\s+/).map(w => [norm(w), w.replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, '')]).filter(x => x[0] && !x[0].includes(' ')), ws = raw.map(x => x[0]), byKey = new Map(SIGNS.map(s => [s.key, s])), out = [];
+  for (let i = 0; i < ws.length;) {
+    let hit = null;
+    for (let n = Math.min(4, ws.length - i); n > 0 && !hit; n--) { const s = byKey.get(ws.slice(i, i + n).join(' ')); if (s) hit = { sign: s, text: s.name, n }; }
+    if (hit) { out.push(hit); i += hit.n; continue; }
+    const w = ws[i++], letters = [...w].map(c => byKey.get(c));
+    if (w.length > 1 && letters.every(s => s && s.clip)) letters.forEach(s => out.push({ sign: s, text: s.name, of: w }));
+    else out.push({ sign: null, text: raw[i - 1][1] || w });
+  }
+  return out;
+}
+let playing = 0;
+async function playSeq(items) {
+  const run = ++playing, chips = $('repChips'), clip = $('clip'), word = $('clipWord');
+  chips.replaceChildren(...items.map(it => { const c = document.createElement('span'); c.className = 'chip' + (it.sign?.clip ? '' : ' txt'); c.textContent = it.text; return c; }));
+  $('player').hidden = false; $('player').scrollIntoView({ block: 'center', behavior: 'smooth' });
+  for (let i = 0; i < items.length && run === playing; i++) {
+    const it = items[i]; [...chips.children].forEach((c, k) => c.classList.toggle('on', k === i));
+    $('clipCap').textContent = it.of ? `${it.text} · ${it.of}` : it.text;
+    if (it.sign?.clip) {
+      word.hidden = true; clip.hidden = false;
+      const url = URL.createObjectURL(it.sign.clip); clip.src = url;
+      await new Promise(ok => { clip.onended = clip.onerror = ok; clip.play().catch(ok); setTimeout(ok, 6000); });
+      URL.revokeObjectURL(url);
+    } else { clip.hidden = true; word.hidden = false; word.textContent = it.text; await sleep(1400); }
+    await sleep(180);
+  }
+  if (run === playing) [...chips.children].forEach(c => c.classList.remove('on'));
+}
+$('playBtn').onclick = () => {
+  const items = plan($('reply').value);
+  if (!items.length) return msg('repMsg', 'Escribe o dicta primero tu respuesta.', true);
+  const miss = items.filter(i => !i.sign).length;
+  msg('repMsg', miss ? `${miss} ${miss === 1 ? 'palabra no tiene' : 'palabras no tienen'} seña guardada: ${miss === 1 ? 'se muestra escrita' : 'se muestran escritas'}.` : 'Mostrando la respuesta en señas.');
+  playSeq(items);
+};
+$('bigBtn').onclick = () => { const t = $('reply').value.trim(); if (!t) return msg('repMsg', 'Escribe primero tu respuesta.', true); $('bigText').textContent = t; $('bigText').hidden = false; };
+$('bigText').onclick = () => { $('bigText').hidden = true; };
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+if (!SR) $('dictBtn').hidden = true;
+$('dictBtn').onclick = () => {
+  const r = new SR(); r.lang = 'es-CO'; r.interimResults = false;
+  msg('repMsg', 'Te escucho: habla ahora.'); $('dictBtn').disabled = true;
+  r.onresult = e => { $('reply').value = ($('reply').value + ' ' + e.results[0][0].transcript).trim(); msg('repMsg', 'Listo. Revisa el texto y pulsa “Mostrar en señas”.'); };
+  r.onerror = () => msg('repMsg', 'No pude escuchar. Revisa el permiso del micrófono o escribe la respuesta.', true);
+  r.onend = () => { $('dictBtn').disabled = false; };
+  r.start();
+};
+
+/* ---------- Pestañas, instalación y arranque ---------- */
+function tab(name) {
+  document.querySelectorAll('nav button').forEach(b => b.setAttribute('aria-selected', b.dataset.tab === name));
+  for (const t of ['entender', 'responder', 'senas', 'ayuda']) $('tab-' + t).hidden = t !== name;
+  $('camCard').hidden = name === 'responder' || name === 'ayuda';
+  if (name !== 'responder') playing++;
+  window.scrollTo(0, 0);
+}
+document.querySelectorAll('nav button').forEach(b => b.onclick = () => tab(b.dataset.tab));
+let installEvt = null;
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEvt = e; $('installBtn').hidden = false; });
+$('installBtn').onclick = () => { installEvt?.prompt(); installEvt = null; $('installBtn').hidden = true; };
+if ('serviceWorker' in navigator && location.protocol !== 'file:') navigator.serviceWorker.register('sw.js').catch(() => {});
+const env = [];
+if (!window.isSecureContext) env.push('La cámara solo funciona en una página segura (https).');
+if (!navigator.mediaDevices?.getUserMedia) env.push('Este navegador no da acceso a la cámara. Usa Chrome, Edge o Safari actualizados.');
+if (!db) env.push('Este navegador no permite guardar las señas (¿modo privado?).');
+if (env.length) { $('envMsg').hidden = false; $('envMsg').textContent = env.join(' '); }
+renderSigns();
+if (!SIGNS.length) tab('ayuda');
+Object.assign(window, { __t: { onHands, plan, classify, windowVec, frameHands, threshold, dist, get SIGNS() { return SIGNS; }, set SIGNS(v) { SIGNS = v; renderSigns(); }, sentence, T, FRAME } });
+</script>
+</body>
+</html>
