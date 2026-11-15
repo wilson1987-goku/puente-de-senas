@@ -70,6 +70,7 @@ input[type=range]{accent-color:var(--teal);flex:1}
 .chip.on{background:var(--teal);border-color:var(--teal);color:var(--onTeal)}
 .chip.txt{border-style:dashed;color:var(--muted)}
 .chip.on,.chip.txt.on{color:var(--onTeal)}
+button.chip{font-size:15px;padding:7px 13px}
 #bigText{position:fixed;inset:0;z-index:20;background:var(--ink);color:var(--bg);display:grid;place-items:center;padding:24px;text-align:center;font:800 clamp(34px,10vw,84px)/1.1 var(--display);word-break:break-word;cursor:pointer}
 
 /* Mis señas */
@@ -143,7 +144,11 @@ nav button[aria-selected=true]{background:var(--teal);color:var(--onTeal)}
     <p class="msg" id="repMsg"></p>
     <div id="player" hidden><video id="clip" playsinline muted></video><div class="word" id="clipWord" hidden></div><div class="cap" id="clipCap"></div></div>
     <div class="chips" id="repChips"></div>
-    <p class="sub">Las palabras con borde punteado todavía no tienen seña guardada: se muestran escritas, o deletreadas si ya enseñaste el abecedario.</p>
+    <p class="sub">Las palabras con borde punteado todavía no tienen seña: se muestran escritas, o deletreadas si ya enseñaste el abecedario.</p>
+    <h3 id="dictH">Señas disponibles</h3>
+    <p class="sub">Toca una para verla. Escribe tu respuesta con estas palabras y con las señas que hayas grabado.</p>
+    <div class="chips" id="dictChips"></div>
+    <p class="sub" id="dictCred"></p>
   </section>
 
   <section id="tab-senas" class="card" hidden>
@@ -168,11 +173,12 @@ nav button[aria-selected=true]{background:var(--teal);color:var(--onTeal)}
     <span class="tag">Cómo funciona</span>
     <h2>Un puente entre señas y voz</h2>
     <ol class="steps">
-      <li><b>Enseña las señas.</b> En “Mis señas”, una persona que sepa lengua de señas graba cada seña cinco veces. Empieza por las más usadas: hola, gracias, sí, no, ayuda, nombre, y el abecedario.</li>
-      <li><b>Entender.</b> La persona sorda hace señas frente a la cámara. La app las reconoce, arma la frase y la lee en voz alta.</li>
-      <li><b>Responder.</b> Escribe o dicta tu respuesta. La app la muestra seña por seña con los videos guardados; lo que no tenga seña lo deletrea o lo muestra escrito en grande.</li>
+      <li><b>Responder.</b> Escribe o dicta tu respuesta y la app la muestra seña por seña en video. Ya trae 50 señas básicas de la Lengua de Señas Colombiana: saludos, cortesía, familia, sentimientos y preguntas. Lo que no tenga seña lo muestra escrito en grande.</li>
+      <li><b>Agregar señas.</b> En “Mis señas”, una persona que sepa lengua de señas graba cada seña nueva cinco veces. Queda disponible para responder y para que la cámara la reconozca.</li>
+      <li><b>Entender.</b> La persona sorda hace señas frente a la cámara. La app reconoce las señas que se le han enseñado, arma la frase y la lee en voz alta.</li>
     </ol>
-    <p class="note"><b>Importante.</b> La app no trae señas de fábrica: reconoce únicamente las que se le enseñan, tal como se usan en tu comunidad (por ejemplo, la Lengua de Señas Colombiana). Sigue las manos, no las expresiones de la cara ni la gramática completa de la lengua, así que sirve para conversaciones sencillas y no reemplaza a un intérprete en trámites médicos, legales o de emergencia.</p>
+    <p class="note"><b>Importante.</b> La app muestra las señas una tras otra, en el orden en que escribes: no aplica la gramática propia de la lengua de señas ni las expresiones de la cara. Usa frases cortas y sencillas. Sirve para conversaciones básicas y no reemplaza a un intérprete en trámites médicos, legales o de emergencia. La cámara, por ahora, solo reconoce las señas grabadas en “Mis señas”.</p>
+    <p class="sub">Los videos del diccionario provienen del conjunto de datos LSC50 (Flórez-Sierra y otros, Scientific Data, 2024), publicado con licencia Creative Commons Atribución 4.0. Fueron recortados y convertidos para esta app; sus autores no participan en ella.</p>
     <p class="sub">Consejos: buena luz, fondo sencillo, las manos completas dentro de la imagen y la misma distancia que usaste al enseñar la seña.</p>
   </section>
 </main>
@@ -200,6 +206,9 @@ const db = await new Promise((ok, no) => {
 const tx = (mode, fn) => new Promise((ok, no) => { const t = db.transaction('signs', mode), q = fn(t.objectStore('signs')); t.oncomplete = () => ok(q.result); t.onerror = () => no(t.error); });
 let SIGNS = db ? await tx('readonly', s => s.getAll()) : [];   // {key, name, samples:[Float32Array], th, clip:Blob|null}
 const putSign = s => db && tx('readwrite', st => st.put(s));
+// Diccionario incluido: videos de señas colombianas con licencia abierta (ver senas/CREDITOS.txt). Solo sirve para responder.
+const DICT = await fetch('senas/indice.json').then(r => r.json()).then(d => d.senas.map(e => ({ name: e.n, url: 'senas/' + e.f, alias: e.a || [], tilde: e.t || 0 }))).catch(() => []);
+const media = s => !!s && !!(s.url || s.clip);
 const delSign = k => db && tx('readwrite', st => st.delete(k));
 
 /* ---------- Rasgos de las manos ---------- */
@@ -376,7 +385,7 @@ function renderSigns() {
     del.onclick = async () => { if (!confirm(`¿Borrar la seña “${s.name}”?`)) return; await delSign(s.key); SIGNS = SIGNS.filter(x => x !== s); renderSigns(); };
     d.append(b, sm, see, del); box.append(d);
   }
-  $('entMsg').textContent = SIGNS.length ? `La app conoce ${SIGNS.length} ${SIGNS.length === 1 ? 'seña' : 'señas'}.` : 'La app todavía no conoce ninguna seña. Enséñale la primera en “Mis señas”.';
+  $('entMsg').textContent = SIGNS.length ? `La cámara reconoce ${SIGNS.length} ${SIGNS.length === 1 ? 'seña' : 'señas'}.` : 'La cámara todavía no reconoce ninguna seña. Enséñale la primera en “Mis señas”.';
 }
 
 /* ---------- Copia de seguridad (incluye los videos) ---------- */
@@ -407,13 +416,24 @@ $('impFile').onchange = async e => {
 };
 
 /* ---------- Responder: de texto o voz a señas ---------- */
+// La lengua de señas no usa artículos ni el verbo ser/estar como enlace: se omiten en vez de mostrarlos escritos.
+const OMITIR = new Set('el la los las un una unos unas es esta estoy estas son estan soy eres somos estamos'.split(' '));
 function plan(text) {
-  const raw = text.split(/\s+/).map(w => [norm(w), w.replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, '')]).filter(x => x[0] && !x[0].includes(' ')), ws = raw.map(x => x[0]), byKey = new Map(SIGNS.map(s => [s.key, s])), out = [];
+  const hasQ = /[¿?]/.test(text), tilde = w => /[áéíóú]/i.test(w);
+  const raw = text.split(/\s+/).map(w => [norm(w), w.replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, '')]).filter(x => x[0] && !x[0].includes(' ')), ws = raw.map(x => x[0]);
+  const byKey = new Map();
+  for (const d of DICT) for (const k of [d.name, ...d.alias]) byKey.set(norm(k), d);
+  for (const s of SIGNS) byKey.set(s.key, s);                      // las señas propias mandan sobre el diccionario
+  const out = [];
   for (let i = 0; i < ws.length;) {
     let hit = null;
-    for (let n = Math.min(4, ws.length - i); n > 0 && !hit; n--) { const s = byKey.get(ws.slice(i, i + n).join(' ')); if (s) hit = { sign: s, text: s.name, n }; }
+    for (let n = Math.min(4, ws.length - i); n > 0 && !hit; n--) {
+      const s = byKey.get(ws.slice(i, i + n).join(' '));
+      if (s && !(s.tilde && !(hasQ && s.tilde === 1) && !raw.slice(i, i + n).some(x => tilde(x[1])))) hit = { sign: s, text: s.name, n };
+    }
     if (hit) { out.push(hit); i += hit.n; continue; }
-    const w = ws[i++], letters = [...w].map(c => byKey.get(c));
+    const w = ws[i++]; if (OMITIR.has(w)) continue;
+    const letters = [...w].map(c => SIGNS.find(s => s.key === c));
     if (w.length > 1 && letters.every(s => s && s.clip)) letters.forEach(s => out.push({ sign: s, text: s.name, of: w }));
     else out.push({ sign: null, text: raw[i - 1][1] || w });
   }
@@ -422,16 +442,18 @@ function plan(text) {
 let playing = 0;
 async function playSeq(items) {
   const run = ++playing, chips = $('repChips'), clip = $('clip'), word = $('clipWord');
-  chips.replaceChildren(...items.map(it => { const c = document.createElement('span'); c.className = 'chip' + (it.sign?.clip ? '' : ' txt'); c.textContent = it.text; return c; }));
+  chips.replaceChildren(...items.map(it => { const c = document.createElement('span'); c.className = 'chip' + (media(it.sign) ? '' : ' txt'); c.textContent = it.text; return c; }));
   $('player').hidden = false; $('player').scrollIntoView({ block: 'center', behavior: 'smooth' });
   for (let i = 0; i < items.length && run === playing; i++) {
     const it = items[i]; [...chips.children].forEach((c, k) => c.classList.toggle('on', k === i));
     $('clipCap').textContent = it.of ? `${it.text} · ${it.of}` : it.text;
-    if (it.sign?.clip) {
+    if (media(it.sign)) {
       word.hidden = true; clip.hidden = false;
-      const url = URL.createObjectURL(it.sign.clip); clip.src = url;
-      await new Promise(ok => { clip.onended = clip.onerror = ok; clip.play().catch(ok); setTimeout(ok, 6000); });
-      URL.revokeObjectURL(url);
+      const own = !it.sign.url, url = own ? URL.createObjectURL(it.sign.clip) : it.sign.url;
+      clip.style.transform = own ? '' : 'none';                     // los videos propios son de cámara frontal (espejo); los del diccionario no
+      clip.src = url;
+      await new Promise(ok => { clip.onended = clip.onerror = ok; clip.play().catch(ok); setTimeout(ok, 7000); });
+      if (own) URL.revokeObjectURL(url);
     } else { clip.hidden = true; word.hidden = false; word.textContent = it.text; await sleep(1400); }
     await sleep(180);
   }
@@ -440,7 +462,7 @@ async function playSeq(items) {
 $('playBtn').onclick = () => {
   const items = plan($('reply').value);
   if (!items.length) return msg('repMsg', 'Escribe o dicta primero tu respuesta.', true);
-  const miss = items.filter(i => !i.sign).length;
+  const miss = items.filter(i => !media(i.sign)).length;
   msg('repMsg', miss ? `${miss} ${miss === 1 ? 'palabra no tiene' : 'palabras no tienen'} seña guardada: ${miss === 1 ? 'se muestra escrita' : 'se muestran escritas'}.` : 'Mostrando la respuesta en señas.');
   playSeq(items);
 };
@@ -476,7 +498,11 @@ if (!navigator.mediaDevices?.getUserMedia) env.push('Este navegador no da acceso
 if (!db) env.push('Este navegador no permite guardar las señas (¿modo privado?).');
 if (env.length) { $('envMsg').hidden = false; $('envMsg').textContent = env.join(' '); }
 renderSigns();
-if (!SIGNS.length) tab('ayuda');
+$('dictH').textContent = `Señas disponibles (${DICT.length})`;
+$('dictChips').replaceChildren(...DICT.map(d => { const b = document.createElement('button'); b.className = 'chip'; b.textContent = d.name; b.onclick = () => playSeq([{ sign: d, text: d.name }]); return b; }));
+$('dictCred').textContent = DICT.length ? 'Videos: conjunto de datos LSC50 (Flórez-Sierra y otros, 2024), licencia CC BY 4.0, recortados y convertidos para esta app.' : 'No se pudo cargar el diccionario incluido.';
+let seen = false; try { seen = localStorage.getItem('ps.visto') === '1'; localStorage.setItem('ps.visto', '1'); } catch {}
+tab(seen ? 'responder' : 'ayuda');
 Object.assign(window, { __t: { onHands, plan, classify, windowVec, frameHands, threshold, dist, get SIGNS() { return SIGNS; }, set SIGNS(v) { SIGNS = v; renderSigns(); }, sentence, T, FRAME } });
 </script>
 </body>

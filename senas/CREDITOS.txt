@@ -1,0 +1,10 @@
+Videos de señas incluidos en esta carpeta
+
+Fuente: "LSC50: Colombian Sign Language Video and Inertial Measurement Dataset".
+Autores del registro en Figshare: Christian Cifuentes-De la Portilla, Luis Felipe Giraldo, Brayan David Solórzano Quevedo.
+Figshare, 2024. https://doi.org/10.6084/m9.figshare.27383016.v1
+Artículo: Flórez-Sierra, A. F. y otros. Scientific Data 11 (2024). https://doi.org/10.1038/s41597-024-04172-5
+Licencia: Creative Commons Atribución 4.0 Internacional (CC BY 4.0), https://creativecommons.org/licenses/by/4.0/
+
+Cambios hechos para esta app: se tomó una grabación por seña (videos COLOR_BODY), se recortó el encuadre,
+se redujo el tamaño a 480x360 y se convirtió a MP4. Los autores del conjunto de datos no avalan esta app.

@@ -1,0 +1,304 @@
+{
+"fuente": "LSC50: Colombian Sign Language Video and Inertial Measurement Dataset (CC BY 4.0)",
+"senas": [
+{
+"n": "Gracias",
+"f": "gracias.mp4",
+"a": [
+"muchas gracias"
+]
+},
+{
+"n": "Buenos días",
+"f": "buenos-dias.mp4",
+"a": [
+"buen día"
+]
+},
+{
+"n": "Buenas tardes",
+"f": "buenas-tardes.mp4"
+},
+{
+"n": "Buenas noches",
+"f": "buenas-noches.mp4"
+},
+{
+"n": "Seña",
+"f": "senya.mp4",
+"a": [
+"señas"
+]
+},
+{
+"n": "Nombre",
+"f": "nombre.mp4"
+},
+{
+"n": "Trabajar",
+"f": "trabajar.mp4",
+"a": [
+"trabajo",
+"trabajas",
+"trabaja",
+"trabajando"
+]
+},
+{
+"n": "Comer",
+"f": "comer.mp4",
+"a": [
+"comes",
+"come",
+"comiendo"
+]
+},
+{
+"n": "Vivir",
+"f": "vivir.mp4",
+"a": [
+"vivo",
+"vives",
+"vive"
+]
+},
+{
+"n": "Poco",
+"f": "poco.mp4",
+"a": [
+"poca"
+]
+},
+{
+"n": "Familia",
+"f": "familia.mp4"
+},
+{
+"n": "Personas",
+"f": "personas.mp4",
+"a": [
+"persona"
+]
+},
+{
+"n": "Mujer",
+"f": "mujer.mp4",
+"a": [
+"mujeres"
+]
+},
+{
+"n": "Hombre",
+"f": "hombre.mp4",
+"a": [
+"hombres"
+]
+},
+{
+"n": "Niño",
+"f": "ninyo.mp4",
+"a": [
+"niños"
+]
+},
+{
+"n": "Niña",
+"f": "ninya.mp4",
+"a": [
+"niñas"
+]
+},
+{
+"n": "Abuelo",
+"f": "abuelo.mp4"
+},
+{
+"n": "Tío",
+"f": "tio.mp4"
+},
+{
+"n": "Hermano",
+"f": "hermano.mp4",
+"a": [
+"hermanos"
+]
+},
+{
+"n": "Hambre",
+"f": "hambre.mp4"
+},
+{
+"n": "Feliz",
+"f": "feliz.mp4",
+"a": [
+"felices"
+]
+},
+{
+"n": "Contento",
+"f": "contento.mp4",
+"a": [
+"contenta"
+]
+},
+{
+"n": "Triste",
+"f": "triste.mp4"
+},
+{
+"n": "Aburrido",
+"f": "aburrido.mp4",
+"a": [
+"aburrida"
+]
+},
+{
+"n": "Bien",
+"f": "bien.mp4"
+},
+{
+"n": "Mal",
+"f": "mal.mp4"
+},
+{
+"n": "¿Cómo estás?",
+"f": "como-estas.mp4"
+},
+{
+"n": "Más o menos",
+"f": "mas-o-menos.mp4"
+},
+{
+"n": "Sentir",
+"f": "sentir.mp4",
+"a": [
+"siento",
+"sientes",
+"siente"
+]
+},
+{
+"n": "Juicioso",
+"f": "juicioso.mp4",
+"a": [
+"juiciosa"
+]
+},
+{
+"n": "Hola",
+"f": "hola.mp4"
+},
+{
+"n": "Adiós",
+"f": "adios.mp4",
+"a": [
+"chao"
+]
+},
+{
+"n": "Por favor",
+"f": "por-favor.mp4"
+},
+{
+"n": "Con gusto",
+"f": "con-gusto.mp4",
+"a": [
+"con mucho gusto"
+]
+},
+{
+"n": "Bienvenido",
+"f": "bienvenido.mp4",
+"a": [
+"bienvenida",
+"bienvenidos"
+]
+},
+{
+"n": "Perdón",
+"f": "perdon.mp4",
+"a": [
+"perdona",
+"disculpa",
+"disculpe"
+]
+},
+{
+"n": "Permiso",
+"f": "permiso.mp4"
+},
+{
+"n": "Nunca",
+"f": "nunca.mp4"
+},
+{
+"n": "Yo",
+"f": "yo.mp4"
+},
+{
+"n": "Tú",
+"f": "tu.mp4",
+"a": [
+"usted"
+],
+"t": 2
+},
+{
+"n": "Ustedes",
+"f": "ustedes.mp4"
+},
+{
+"n": "¿Qué?",
+"f": "que.mp4",
+"t": 1
+},
+{
+"n": "¿Cuándo?",
+"f": "cuando.mp4",
+"t": 1
+},
+{
+"n": "¿Dónde?",
+"f": "donde.mp4",
+"t": 1
+},
+{
+"n": "¿Cómo?",
+"f": "como.mp4",
+"t": 1
+},
+{
+"n": "¿Por qué?",
+"f": "por-que.mp4",
+"t": 1
+},
+{
+"n": "¿Quién?",
+"f": "quien.mp4",
+"t": 1
+},
+{
+"n": "Diferente",
+"f": "diferente.mp4",
+"a": [
+"diferentes"
+]
+},
+{
+"n": "Todos",
+"f": "todos.mp4",
+"a": [
+"todas"
+]
+},
+{
+"n": "Mucho",
+"f": "mucho.mp4",
+"a": [
+"mucha",
+"muchos",
+"muchas"
+]
+}
+]
+}
