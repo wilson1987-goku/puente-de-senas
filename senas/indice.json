@@ -1,5 +1,5 @@
 {
-"fuente": "LSC50: Colombian Sign Language Video and Inertial Measurement Dataset (CC BY 4.0)",
+"fuente": "LSC50 (Figshare) y LSC70 (Mendeley Data), ambos CC BY 4.0. Ver CREDITOS.txt",
 "senas": [
 {
 "n": "Gracias",
@@ -299,6 +299,254 @@
 "muchos",
 "muchas"
 ]
+},
+{
+"n": "1",
+"f": "letras/1.mp4",
+"l": 1,
+"o": 2
+},
+{
+"n": "10",
+"f": "letras/10.mp4",
+"l": 1,
+"o": 2
+},
+{
+"n": "4",
+"f": "letras/4.mp4",
+"l": 1,
+"o": 2
+},
+{
+"n": "5",
+"f": "letras/5.mp4",
+"l": 1,
+"o": 2
+},
+{
+"n": "6",
+"f": "letras/6.mp4",
+"l": 1,
+"o": 2
+},
+{
+"n": "7",
+"f": "letras/7.mp4",
+"l": 1,
+"o": 2
+},
+{
+"n": "8",
+"f": "letras/8.mp4",
+"l": 1,
+"o": 2
+},
+{
+"n": "9",
+"f": "letras/9.mp4",
+"l": 1,
+"o": 2
+},
+{
+"n": "A",
+"f": "letras/a.mp4",
+"l": 1,
+"o": 2
+},
+{
+"n": "Años",
+"f": "annos.mp4",
+"a": [
+"año"
+],
+"o": 2
+},
+{
+"n": "B",
+"f": "letras/b.mp4",
+"l": 1,
+"o": 2
+},
+{
+"n": "C",
+"f": "letras/c.mp4",
+"l": 1,
+"o": 2
+},
+{
+"n": "D",
+"f": "letras/d.mp4",
+"l": 1,
+"o": 2
+},
+{
+"n": "E",
+"f": "letras/e.mp4",
+"l": 1,
+"o": 2
+},
+{
+"n": "Ñ",
+"f": "letras/enie.mp4",
+"l": 1,
+"o": 2
+},
+{
+"n": "F",
+"f": "letras/f.mp4",
+"l": 1,
+"o": 2
+},
+{
+"n": "G",
+"f": "letras/g.mp4",
+"l": 1,
+"o": 2
+},
+{
+"n": "Gustar",
+"f": "gustar.mp4",
+"a": [
+"gusta",
+"gustan",
+"gusto"
+],
+"o": 2
+},
+{
+"n": "H",
+"f": "letras/h.mp4",
+"l": 1,
+"o": 2
+},
+{
+"n": "I",
+"f": "letras/i.mp4",
+"l": 1,
+"o": 2
+},
+{
+"n": "J",
+"f": "letras/j.mp4",
+"l": 1,
+"o": 2
+},
+{
+"n": "K",
+"f": "letras/k.mp4",
+"l": 1,
+"o": 2
+},
+{
+"n": "L",
+"f": "letras/l.mp4",
+"l": 1,
+"o": 2
+},
+{
+"n": "Licor",
+"f": "licor.mp4",
+"a": [],
+"o": 2
+},
+{
+"n": "M",
+"f": "letras/m.mp4",
+"l": 1,
+"o": 2
+},
+{
+"n": "Mil",
+"f": "letras/mil.mp4",
+"a": [],
+"o": 2
+},
+{
+"n": "Millón",
+"f": "letras/millon.mp4",
+"a": [
+"millones"
+],
+"o": 2
+},
+{
+"n": "N",
+"f": "letras/n.mp4",
+"l": 1,
+"o": 2
+},
+{
+"n": "O",
+"f": "letras/o.mp4",
+"l": 1,
+"o": 2
+},
+{
+"n": "P",
+"f": "letras/p.mp4",
+"l": 1,
+"o": 2
+},
+{
+"n": "Q",
+"f": "letras/q.mp4",
+"l": 1,
+"o": 2
+},
+{
+"n": "R",
+"f": "letras/r.mp4",
+"l": 1,
+"o": 2
+},
+{
+"n": "S",
+"f": "letras/s.mp4",
+"l": 1,
+"o": 2
+},
+{
+"n": "T",
+"f": "letras/t.mp4",
+"l": 1,
+"o": 2
+},
+{
+"n": "U",
+"f": "letras/u.mp4",
+"l": 1,
+"o": 2
+},
+{
+"n": "V",
+"f": "letras/v.mp4",
+"l": 1,
+"o": 2
+},
+{
+"n": "W",
+"f": "letras/w.mp4",
+"l": 1,
+"o": 2
+},
+{
+"n": "X",
+"f": "letras/x.mp4",
+"l": 1,
+"o": 2
+},
+{
+"n": "Y",
+"f": "letras/y.mp4",
+"l": 1,
+"o": 2
+},
+{
+"n": "Z",
+"f": "letras/z.mp4",
+"l": 1,
+"o": 2
 }
 ]
 }

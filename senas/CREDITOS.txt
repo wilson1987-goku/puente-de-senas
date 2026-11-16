@@ -8,3 +8,13 @@ Licencia: Creative Commons Atribución 4.0 Internacional (CC BY 4.0), https://cr
 
 Cambios hechos para esta app: se tomó una grabación por seña (videos COLOR_BODY), se recortó el encuadre,
 se redujo el tamaño a 480x360 y se convirtió a MP4. Los autores del conjunto de datos no avalan esta app.
+
+Abecedario, números y las señas "años", "gustar" y "licor" (carpeta letras/ y tres videos más)
+
+Fuente: "Speak in Colombian Sign Language: A Dynamic LSC70 Database".
+Autores: Jader Alejandro Muñoz Galindez, Leidy Verónica Villota Coral, Rubiel Vargas-Canas (Universidad del Cauca).
+Mendeley Data, versión 2, 2024. https://doi.org/10.17632/9ssyn8tff5.2
+Licencia: Creative Commons Atribución 4.0 Internacional (CC BY 4.0), https://creativecommons.org/licenses/by/4.0/
+
+Cambios hechos para esta app: de cada seña se tomaron las seis imágenes de una persona voluntaria (sección LSC70AN y LSC70W),
+se recortó el encuadre y se unieron en un video corto MP4. Los autores del conjunto de datos no avalan esta app.

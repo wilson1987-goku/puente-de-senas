@@ -144,10 +144,13 @@ nav button[aria-selected=true]{background:var(--teal);color:var(--onTeal)}
     <p class="msg" id="repMsg"></p>
     <div id="player" hidden><video id="clip" playsinline muted></video><div class="word" id="clipWord" hidden></div><div class="cap" id="clipCap"></div></div>
     <div class="chips" id="repChips"></div>
-    <p class="sub">Las palabras con borde punteado todavía no tienen seña: se muestran escritas, o deletreadas si ya enseñaste el abecedario.</p>
+    <p class="sub">Las palabras sin seña propia se deletrean con el abecedario. Solo lo que no se puede deletrear (borde punteado) se muestra escrito.</p>
     <h3 id="dictH">Señas disponibles</h3>
     <p class="sub">Toca una para verla. Escribe tu respuesta con estas palabras y con las señas que hayas grabado.</p>
     <div class="chips" id="dictChips"></div>
+    <h3>Abecedario y números</h3>
+    <p class="sub">Cualquier palabra que no tenga seña se deletrea sola con estas letras. No hay señas para los números 0, 2 y 3.</p>
+    <div class="chips" id="letChips"></div>
     <p class="sub" id="dictCred"></p>
   </section>
 
@@ -173,12 +176,12 @@ nav button[aria-selected=true]{background:var(--teal);color:var(--onTeal)}
     <span class="tag">Cómo funciona</span>
     <h2>Un puente entre señas y voz</h2>
     <ol class="steps">
-      <li><b>Responder.</b> Escribe o dicta tu respuesta y la app la muestra seña por seña en video. Ya trae 50 señas básicas de la Lengua de Señas Colombiana: saludos, cortesía, familia, sentimientos y preguntas. Lo que no tenga seña lo muestra escrito en grande.</li>
+      <li><b>Responder.</b> Escribe o dicta tu respuesta y la app la muestra seña por seña en video. Ya trae 55 señas básicas de la Lengua de Señas Colombiana (saludos, cortesía, familia, sentimientos y preguntas), el abecedario y varios números. Lo que no tenga seña lo deletrea letra por letra.</li>
       <li><b>Agregar señas.</b> En “Mis señas”, una persona que sepa lengua de señas graba cada seña nueva cinco veces. Queda disponible para responder y para que la cámara la reconozca.</li>
       <li><b>Entender.</b> La persona sorda hace señas frente a la cámara. La app reconoce las señas que se le han enseñado, arma la frase y la lee en voz alta.</li>
     </ol>
     <p class="note"><b>Importante.</b> La app muestra las señas una tras otra, en el orden en que escribes: no aplica la gramática propia de la lengua de señas ni las expresiones de la cara. Usa frases cortas y sencillas. Sirve para conversaciones básicas y no reemplaza a un intérprete en trámites médicos, legales o de emergencia. La cámara, por ahora, solo reconoce las señas grabadas en “Mis señas”.</p>
-    <p class="sub">Los videos del diccionario provienen del conjunto de datos LSC50 (Flórez-Sierra y otros, Scientific Data, 2024), publicado con licencia Creative Commons Atribución 4.0. Fueron recortados y convertidos para esta app; sus autores no participan en ella.</p>
+    <p class="sub">Los videos del diccionario provienen de los conjuntos de datos LSC50 (Flórez-Sierra y otros, Scientific Data, 2024) y LSC70 (Muñoz Galindez, Villota Coral y Vargas-Canas, Universidad del Cauca, 2024), publicados con licencia Creative Commons Atribución 4.0. Fueron recortados y convertidos para esta app; sus autores no participan en ella.</p>
     <p class="sub">Consejos: buena luz, fondo sencillo, las manos completas dentro de la imagen y la misma distancia que usaste al enseñar la seña.</p>
   </section>
 </main>
@@ -192,6 +195,7 @@ nav button[aria-selected=true]{background:var(--teal);color:var(--onTeal)}
 <div id="bigText" hidden></div>
 
 <script type="module">
+import { frameHands, segVec, threshold, Recognizer, VEC } from './reco.js';
 const $ = id => document.getElementById(id);
 const msg = (id, t, err) => { const e = $(id); e.textContent = t; e.classList.toggle('err', !!err); };
 const norm = s => s.toLowerCase().replace(/ñ/g, '\u0001').normalize('NFD').replace(/\u0001/g, 'ñ').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9ñ ]/g, ' ').replace(/\s+/g, ' ').trim();
@@ -204,57 +208,18 @@ const db = await new Promise((ok, no) => {
   r.onsuccess = () => ok(r.result); r.onerror = () => no(r.error);
 }).catch(() => null);
 const tx = (mode, fn) => new Promise((ok, no) => { const t = db.transaction('signs', mode), q = fn(t.objectStore('signs')); t.oncomplete = () => ok(q.result); t.onerror = () => no(t.error); });
-let SIGNS = db ? await tx('readonly', s => s.getAll()) : [];   // {key, name, samples:[Float32Array], th, clip:Blob|null}
+let SIGNS = (db ? await tx('readonly', s => s.getAll()) : []).map(s => ({ ...s, samples: (s.samples || []).filter(x => x.length === VEC) }));   // {key, name, samples:[Float32Array], th, clip:Blob|null}
 const putSign = s => db && tx('readwrite', st => st.put(s));
 // Diccionario incluido: videos de señas colombianas con licencia abierta (ver senas/CREDITOS.txt). Solo sirve para responder.
-const DICT = await fetch('senas/indice.json').then(r => r.json()).then(d => d.senas.map(e => ({ name: e.n, url: 'senas/' + e.f, alias: e.a || [], tilde: e.t || 0 }))).catch(() => []);
+const DICT = await fetch('senas/indice.json').then(r => r.json()).then(d => d.senas.map(e => ({ name: e.n, url: 'senas/' + e.f, alias: e.a || [], tilde: e.t || 0, letra: !!e.l }))).catch(() => []);
 const media = s => !!s && !!(s.url || s.clip);
 const delSign = k => db && tx('readwrite', st => st.delete(k));
 
-/* ---------- Rasgos de las manos ---------- */
-const T = 8, WIN = 1200, HAND = 66, FRAME = HAND * 2;     // 63 coordenadas + 2 de desplazamiento + 1 de presencia, por mano
-// Convierte el resultado del detector en hasta dos manos normalizadas (posición y tamaño no importan).
-function frameHands(lms, aspect) {
-  const hs = lms.map(lm => {
-    const w = lm[0], sc = Math.hypot((lm[9].x - w.x) * aspect, lm[9].y - w.y) || 1e-6, v = new Float32Array(63);
-    for (let i = 0; i < 21; i++) { v[i * 3] = (lm[i].x - w.x) * aspect / sc; v[i * 3 + 1] = (lm[i].y - w.y) / sc; v[i * 3 + 2] = lm[i].z * aspect / sc; }
-    return { v, x: w.x * aspect, y: w.y, sc };
-  }).sort((a, b) => a.x - b.x);
-  return hs.slice(0, 2);
-}
-// Resume una ventana de cuadros en un vector fijo: forma de la mano en T instantes + cuánto se movió.
-function windowVec(frames) {
-  const out = new Float32Array(T * FRAME), first = [null, null];
-  for (let k = 0; k < T; k++) {
-    const f = frames[Math.round(k * (frames.length - 1) / (T - 1))];
-    for (let h = 0; h < 2; h++) {
-      const hd = f[h], o = k * FRAME + h * HAND; if (!hd) continue;
-      first[h] ||= hd;
-      out.set(hd.v, o);
-      out[o + 63] = (hd.x - first[h].x) / first[h].sc; out[o + 64] = (hd.y - first[h].y) / first[h].sc;
-      out[o + 65] = 3;
-    }
-  }
-  return out;
-}
-const dist = (a, b) => { let s = 0; for (let i = 0; i < a.length; i++) { const d = a[i] - b[i]; s += d * d; } return Math.sqrt(s / T); };
-function threshold(samples) {
-  let mx = 0; for (let i = 0; i < samples.length; i++) for (let j = i + 1; j < samples.length; j++) mx = Math.max(mx, dist(samples[i], samples[j]));
-  return Math.min(2.4, Math.max(0.9, mx * 1.35));
-}
-function classify(vec, factor = 1) {
-  let best = null, second = Infinity;
-  for (const s of SIGNS) {
-    let d = Infinity; for (const x of s.samples) d = Math.min(d, dist(vec, x));
-    if (!best || d < best.d) { if (best) second = best.d; best = { s, d }; } else if (d < second) second = d;
-  }
-  if (!best || best.d > best.s.th * factor) return null;
-  if (second < Infinity && best.d > second * 0.92) return null;      // demasiado parecida a otra seña: mejor no adivinar
-  return best.s;
-}
+const WIN = 1600;                                   // duración de cada toma al enseñar una seña (ms)
+const RECO = new Recognizer([]);
 
 /* ---------- Cámara y detector ---------- */
-let landmarker = null, stream = null, buf = [], lastSeen = 0;
+let landmarker = null, stream = null, buf = [], nHands = -1;
 const video = $('video'), cv = $('overlay'), g = cv.getContext('2d');
 const BONES = [[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[5,9],[9,10],[10,11],[11,12],[9,13],[13,14],[14,15],[15,16],[13,17],[17,18],[18,19],[19,20],[0,17]];
 async function startCam() {
@@ -287,10 +252,16 @@ function loop() {
 // Punto único de entrada de cada cuadro (también lo usan las pruebas).
 function onHands(lms, now, aspect) {
   drawHands(lms);
-  const hs = frameHands(lms, aspect);
-  if (hs.length) lastSeen = now;
+  const hs = frameHands(lms, aspect, null);
   buf.push({ t: now, h: hs }); while (buf.length && buf[0].t < now - WIN) buf.shift();
-  if (!recording) recognize(now);
+  if (recording) return;
+  if (hs.length !== nHands) {                        // aviso visible de lo que ve la cámara
+    nHands = hs.length; $('camBadge').hidden = false;
+    $('camBadge').textContent = nHands === 0 ? 'No veo manos' : nHands === 1 ? 'Veo 1 mano' : 'Veo 2 manos';
+  }
+  const s = RECO.push(now, hs);
+  if (s) { words.push(s.name); $('now').textContent = s.name; paintFrase(); if ($('autoSpeak').checked) say(s.name); }
+  else if (!hs.length && RECO.last === null && $('now').textContent) $('now').textContent = '';
 }
 function drawHands(lms) {
   const w = cv.width = cv.clientWidth, h = cv.height = cv.clientHeight; g.clearRect(0, 0, w, h);
@@ -303,33 +274,21 @@ function drawHands(lms) {
   }
 }
 function currentVec() {
-  const fr = buf.filter(b => b.h.length); if (fr.length < 6 || fr.length < buf.length * 0.7) return null;
-  return windowVec(fr.map(b => b.h));
+  const fr = buf.filter(b => b.h.length); if (fr.length < 6 || fr.length < buf.length * 0.6) return null;
+  return segVec(fr.map(b => b.h));
 }
 
 /* ---------- Entender: de señas a texto y voz ---------- */
-let words = [], cand = null, candN = 0, lastEmit = null, lastCheck = 0;
+let words = [];
 const say = t => { if (!('speechSynthesis' in window) || !t) return; const u = new SpeechSynthesisUtterance(t); u.lang = 'es-CO'; const v = speechSynthesis.getVoices().find(v => v.lang.startsWith('es')); if (v) u.voice = v; speechSynthesis.speak(u); };
 // Las letras sueltas se juntan en una palabra; las palabras se separan con espacio.
 const sentence = () => words.reduce((s, w, i) => s + (i && !(w.length === 1 && words[i - 1].length === 1) ? ' ' : '') + (w === ' ' ? '' : w), '').replace(/\s+/g, ' ').trim();
 function paintFrase() { $('frase').textContent = sentence(); }
-function recognize(now) {
-  if (now - lastSeen > 900) { lastEmit = null; cand = null; if ($('now').textContent) $('now').textContent = ''; }
-  if (now - lastCheck < 220 || !SIGNS.length) return; lastCheck = now;
-  const vec = currentVec(); if (!vec) return;
-  const s = classify(vec, $('sens').value / 100);
-  if (!s) { cand = null; candN = 0; return; }
-  if (cand === s.key) candN++; else { cand = s.key; candN = 1; }
-  if (candN >= 2 && lastEmit !== s.key) {
-    lastEmit = s.key; words.push(s.name); $('now').textContent = s.name; paintFrase();
-    if ($('autoSpeak').checked) say(s.name);
-  }
-}
 $('speakBtn').onclick = () => say(sentence());
-$('spaceBtn').onclick = () => { if (words.length && words.at(-1) !== ' ') words.push(' '); lastEmit = null; };
-$('backBtn').onclick = () => { words.pop(); lastEmit = null; paintFrase(); };
-$('clearBtn').onclick = () => { words = []; lastEmit = null; $('now').textContent = ''; paintFrase(); };
-const paintSens = () => { const v = +$('sens').value; $('sensLab').textContent = v < 90 ? 'estricta' : v > 115 ? 'flexible' : 'normal'; };
+$('spaceBtn').onclick = () => { if (words.length && words.at(-1) !== ' ') words.push(' '); RECO.last = null; };
+$('backBtn').onclick = () => { words.pop(); RECO.last = null; paintFrase(); };
+$('clearBtn').onclick = () => { words = []; RECO.last = null; $('now').textContent = ''; paintFrase(); };
+const paintSens = () => { const v = +$('sens').value; RECO.o.factor = v / 100; $('sensLab').textContent = v < 90 ? 'estricta' : v > 115 ? 'flexible' : 'normal'; };
 $('sens').oninput = paintSens; paintSens();
 
 /* ---------- Mis señas: enseñar ---------- */
@@ -371,21 +330,22 @@ $('recBtn').onclick = async () => {
     await putSign(sign); SIGNS = SIGNS.filter(s => s.key !== key).concat(sign);
     $('newName').value = ''; renderSigns();
     msg('recMsg', `Seña “${name}” guardada${sign.clip ? ' con su video' : ' (este navegador no permitió guardar el video)'}. Pruébala en Entender.`);
-  } finally { recording = false; $('recBtn').disabled = false; $('camBadge').hidden = true; $('count').hidden = true; buf = []; }
+  } finally { recording = false; nHands = -1; $('recBtn').disabled = false; $('camBadge').hidden = true; $('count').hidden = true; buf = []; }
 };
 function renderSigns() {
+  RECO.bank = SIGNS.filter(s => s.samples.length >= 3);
   const box = $('signList'); box.replaceChildren();
   $('listH').textContent = SIGNS.length ? `Señas guardadas (${SIGNS.length})` : 'Señas guardadas';
   if (!SIGNS.length) { const p = document.createElement('p'); p.className = 'sub'; p.textContent = 'Todavía no hay señas. Graba la primera arriba.'; box.append(p); }
   for (const s of [...SIGNS].sort((a, b) => a.key.localeCompare(b.key, 'es'))) {
     const d = document.createElement('div'), b = document.createElement('b'), sm = document.createElement('small'), see = document.createElement('button'), del = document.createElement('button');
-    d.className = 'sign'; b.textContent = s.name; sm.textContent = s.clip ? 'con video' : 'sin video';
+    d.className = 'sign'; b.textContent = s.name; sm.textContent = s.samples.length < 3 ? 'volver a enseñar' : s.clip ? 'con video' : 'sin video';
     see.textContent = 'Ver'; see.disabled = !s.clip; see.onclick = () => { tab('responder'); playSeq([{ sign: s, text: s.name }]); };
     del.textContent = 'Borrar'; del.className = 'danger';
     del.onclick = async () => { if (!confirm(`¿Borrar la seña “${s.name}”?`)) return; await delSign(s.key); SIGNS = SIGNS.filter(x => x !== s); renderSigns(); };
     d.append(b, sm, see, del); box.append(d);
   }
-  $('entMsg').textContent = SIGNS.length ? `La cámara reconoce ${SIGNS.length} ${SIGNS.length === 1 ? 'seña' : 'señas'}.` : 'La cámara todavía no reconoce ninguna seña. Enséñale la primera en “Mis señas”.';
+  $('entMsg').textContent = RECO.bank.length ? `La cámara reconoce ${RECO.bank.length} ${RECO.bank.length === 1 ? 'seña' : 'señas'}: ${RECO.bank.map(s => s.name).join(', ')}.` : 'La cámara todavía no reconoce ninguna seña: solo reconoce las que se le enseñan en “Mis señas”. Los videos del diccionario sirven para responder.';
 }
 
 /* ---------- Copia de seguridad (incluye los videos) ---------- */
@@ -403,7 +363,7 @@ $('impFile').onchange = async e => {
     const data = JSON.parse(await f.text()); if (data.app !== 'puente-senas' || !Array.isArray(data.signs)) throw 0;
     let n = 0;
     for (const s of data.signs) {
-      if (typeof s.name !== 'string' || !Array.isArray(s.samples) || !s.samples.length || s.samples.some(x => x.length !== T * FRAME)) continue;
+      if (typeof s.name !== 'string' || !Array.isArray(s.samples) || !s.samples.length || s.samples.some(x => x.length !== VEC)) continue;
       const key = norm(s.name); if (!key) continue;
       const samples = s.samples.map(x => Float32Array.from(x));
       const clip = typeof s.clip === 'string' && s.clip.startsWith('data:video/') ? await (await fetch(s.clip)).blob() : null;
@@ -433,8 +393,8 @@ function plan(text) {
     }
     if (hit) { out.push(hit); i += hit.n; continue; }
     const w = ws[i++]; if (OMITIR.has(w)) continue;
-    const letters = [...w].map(c => SIGNS.find(s => s.key === c));
-    if (w.length > 1 && letters.every(s => s && s.clip)) letters.forEach(s => out.push({ sign: s, text: s.name, of: w }));
+    const letters = [...w].map(c => { const s = byKey.get(c); return media(s) ? s : null; });
+    if (w.length > 1 && letters.every(Boolean)) letters.forEach(s => out.push({ sign: s, text: s.name, of: raw[i - 1][1] || w }));
     else out.push({ sign: null, text: raw[i - 1][1] || w });
   }
   return out;
@@ -451,7 +411,7 @@ async function playSeq(items) {
       word.hidden = true; clip.hidden = false;
       const own = !it.sign.url, url = own ? URL.createObjectURL(it.sign.clip) : it.sign.url;
       clip.style.transform = own ? '' : 'none';                     // los videos propios son de cámara frontal (espejo); los del diccionario no
-      clip.src = url;
+      clip.src = url; clip.playbackRate = clip.defaultPlaybackRate = it.sign.letra ? 1.7 : 1;
       await new Promise(ok => { clip.onended = clip.onerror = ok; clip.play().catch(ok); setTimeout(ok, 7000); });
       if (own) URL.revokeObjectURL(url);
     } else { clip.hidden = true; word.hidden = false; word.textContent = it.text; await sleep(1400); }
@@ -498,12 +458,14 @@ if (!navigator.mediaDevices?.getUserMedia) env.push('Este navegador no da acceso
 if (!db) env.push('Este navegador no permite guardar las señas (¿modo privado?).');
 if (env.length) { $('envMsg').hidden = false; $('envMsg').textContent = env.join(' '); }
 renderSigns();
-$('dictH').textContent = `Señas disponibles (${DICT.length})`;
-$('dictChips').replaceChildren(...DICT.map(d => { const b = document.createElement('button'); b.className = 'chip'; b.textContent = d.name; b.onclick = () => playSeq([{ sign: d, text: d.name }]); return b; }));
-$('dictCred').textContent = DICT.length ? 'Videos: conjunto de datos LSC50 (Flórez-Sierra y otros, 2024), licencia CC BY 4.0, recortados y convertidos para esta app.' : 'No se pudo cargar el diccionario incluido.';
+const PAL = DICT.filter(d => !d.letra), LET = DICT.filter(d => d.letra);
+$('dictH').textContent = `Señas disponibles (${PAL.length})`;
+const chipsDe = list => list.map(d => { const b = document.createElement('button'); b.className = 'chip'; b.textContent = d.name; b.onclick = () => playSeq([{ sign: d, text: d.name }]); return b; });
+$('dictChips').replaceChildren(...chipsDe(PAL)); $('letChips').replaceChildren(...chipsDe(LET));
+$('dictCred').textContent = DICT.length ? 'Videos: conjuntos de datos LSC50 (Flórez-Sierra y otros, 2024) y LSC70 (Muñoz Galindez, Villota Coral y Vargas-Canas, 2024), licencia CC BY 4.0, recortados y convertidos para esta app.' : 'No se pudo cargar el diccionario incluido.';
 let seen = false; try { seen = localStorage.getItem('ps.visto') === '1'; localStorage.setItem('ps.visto', '1'); } catch {}
 tab(seen ? 'responder' : 'ayuda');
-Object.assign(window, { __t: { onHands, plan, classify, windowVec, frameHands, threshold, dist, get SIGNS() { return SIGNS; }, set SIGNS(v) { SIGNS = v; renderSigns(); }, sentence, T, FRAME } });
+Object.assign(window, { __t: { onHands, plan, frameHands, segVec, threshold, RECO, get SIGNS() { return SIGNS; }, set SIGNS(v) { SIGNS = v; renderSigns(); }, sentence } });
 </script>
 </body>
 </html>
