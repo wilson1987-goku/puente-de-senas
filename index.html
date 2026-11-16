@@ -2,203 +2,238 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Puente de Señas</title>
-<meta name="description" content="Conversa en lengua de señas: la cámara reconoce las señas que le enseñas y la app responde mostrando señas en video.">
+<meta name="description" content="Una conversación entre señas y voz: la cámara lee las señas y tu respuesta se muestra en lengua de señas.">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icon-180.png">
-<meta name="theme-color" content="#0B2B2E">
+<meta name="theme-color" content="#0A0A0B">
 <style>
-/* Dos personas frente al mismo teléfono: texto grande, alto contraste, todo visual. */
-@font-face{font-family:"Bricolage";src:url(fonts/bricolage.woff2) format("woff2");font-weight:200 800;font-display:swap}
-@font-face{font-family:"Figtree";src:url(fonts/figtree.woff2) format("woff2");font-weight:300 900;font-display:swap}
+/* Una sola pantalla, como una videollamada con traductor: arriba la cámara, en medio la conversación, abajo el teclado.
+   Lo demás (enseñar señas, diccionario, ajustes, ayuda) vive en una hoja que sube desde abajo. */
+@font-face{font-family:"Sora";src:url(fonts/sora.woff2) format("woff2");font-weight:100 800;font-display:swap}
+@font-face{font-family:"Manrope";src:url(fonts/manrope.woff2) format("woff2");font-weight:200 800;font-display:swap}
 :root{
-  --bg:#F2F6F4; --paper:#FFFFFF; --soft:#E6EEEB; --line:#CBD9D4; --ink:#0B2B2E; --muted:#4D6668;
-  --teal:#0C7C80; --sun:#FFC53D; --good:#0B8A5F; --bad:#C8364B; --onTeal:#FFFFFF;
-  --display:"Bricolage","Avenir Next","Segoe UI",system-ui,sans-serif;
-  --text:"Figtree","Segoe UI",system-ui,-apple-system,Roboto,sans-serif;
+  --bg:#0A0A0B; --s1:#141416; --s2:#1E1E22; --line:#2C2C33; --ink:#F4F4F1; --dim:#9A9AA3;
+  --lime:#C8F53C; --onLime:#12160A; --violet:#9C8CFF; --bad:#FF6B7F;
+  --display:"Sora","Avenir Next","Segoe UI",system-ui,sans-serif;
+  --text:"Manrope","Segoe UI",system-ui,-apple-system,Roboto,sans-serif;
+  color-scheme:dark;
 }
-@media (prefers-color-scheme: dark){
-  :root{ --bg:#071B1D; --paper:#0E282B; --soft:#15363A; --line:#24494E; --ink:#EEF7F5; --muted:#9DB8B8;
-    --teal:#35C2C4; --sun:#FFC53D; --good:#3DDC97; --bad:#FF6B7F; --onTeal:#04201F; color-scheme:dark; }
-}
-*{box-sizing:border-box}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 [hidden]{display:none!important}
-body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.5 var(--text)}
-main{max-width:760px;margin:0 auto;padding:16px 14px 120px;display:flex;flex-direction:column;gap:14px}
-h1,h2,h3{font-family:var(--display);margin:0;letter-spacing:-.02em;line-height:1.15;text-wrap:balance}
-h1{font-size:21px} h2{font-size:22px} h3{font-size:17px}
-p{margin:0}
-.sub{color:var(--muted)}
-.top{display:flex;gap:12px;align-items:center}
-.top img{border-radius:13px;flex:none}
-.top .grow small{display:block;color:var(--muted);font-size:14px}
-.card{background:var(--paper);border:1.5px solid var(--line);border-radius:20px;padding:16px;display:flex;flex-direction:column;gap:12px}
-.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-.grow{flex:1 1 180px;min-width:0}
-.tag{font:700 12px/1 var(--text);letter-spacing:.12em;text-transform:uppercase;color:var(--teal)}
-button{font:650 16px/1.2 var(--text);color:var(--ink);background:var(--soft);border:1.5px solid var(--line);border-radius:14px;padding:12px 16px;cursor:pointer}
-button.primary{background:var(--teal);border-color:var(--teal);color:var(--onTeal)}
-button.sun{background:var(--sun);border-color:var(--sun);color:#2B1D00}
-button.danger{color:var(--bad)}
-button:disabled{opacity:.45;cursor:not-allowed}
-button:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px solid var(--sun);outline-offset:2px}
-input[type=text],textarea{font:inherit;color:var(--ink);background:var(--soft);border:1.5px solid var(--line);border-radius:14px;padding:12px 14px;width:100%;min-width:0}
-textarea{min-height:92px;resize:vertical;font-size:19px}
-label{display:flex;gap:8px;align-items:center;font-weight:600}
-input[type=checkbox]{width:20px;height:20px;accent-color:var(--teal)}
-input[type=range]{accent-color:var(--teal);flex:1}
+html,body{height:100%}
+body{margin:0;background:#000;color:var(--ink);font:16px/1.45 var(--text);overflow:hidden}
+#app{height:100dvh;max-width:540px;margin:0 auto;background:var(--bg);display:grid;grid-template-rows:minmax(250px,46dvh) 1fr auto;position:relative;overflow:hidden}
+p,h1,h2,h3{margin:0} h1,h2,h3{font-family:var(--display);letter-spacing:-.02em;line-height:1.15}
+button{font:700 15px/1.2 var(--text);color:var(--ink);background:var(--s2);border:1px solid var(--line);border-radius:999px;padding:11px 16px;cursor:pointer}
+button:disabled{opacity:.4;cursor:not-allowed}
+button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid var(--lime);outline-offset:2px}
+button.lime{background:var(--lime);border-color:var(--lime);color:var(--onLime)}
+button.ic{width:44px;height:44px;padding:0;display:grid;place-items:center;flex:none}
+button.ic svg,.send svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.glass{background:rgba(12,12,14,.62);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,.12)}
 
-/* Cámara */
-.stage{position:relative;background:#000;border-radius:16px;overflow:hidden;aspect-ratio:4/3}
-.stage video,.stage canvas{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform:scaleX(-1)}
-.stage .badge{position:absolute;left:10px;top:10px;background:rgba(0,0,0,.62);color:#fff;border-radius:999px;padding:6px 12px;font-weight:700;font-size:14px}
-.stage .count{position:absolute;inset:0;display:grid;place-items:center;font:800 110px/1 var(--display);color:#fff;text-shadow:0 4px 24px rgba(0,0,0,.7)}
-.stage .cover{position:absolute;inset:0;display:grid;place-items:center;padding:18px;text-align:center;color:#fff;gap:10px;align-content:center}
-.now{font:800 clamp(30px,9vw,54px)/1.05 var(--display);letter-spacing:-.03em;min-height:1.1em;color:var(--teal)}
-.frase{font:650 clamp(22px,6vw,32px)/1.25 var(--display);min-height:2.5em;background:var(--soft);border-radius:14px;padding:12px 14px;word-break:break-word}
-.frase:empty::before{content:"Aquí aparece lo que la persona dice en señas.";color:var(--muted);font:500 17px/1.4 var(--text)}
+/* Escenario: cámara o video de señas */
+#stage{position:relative;background:#000;border-radius:0 0 28px 28px;overflow:hidden}
+#stage video,#stage canvas{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+#video,#overlay{transform:scaleX(-1)}
+.topbar{position:absolute;left:12px;right:12px;top:calc(10px + env(safe-area-inset-top));display:flex;gap:8px;align-items:center;z-index:3}
+.brand{font:800 19px/1 var(--display);letter-spacing:-.04em;padding:11px 14px;border-radius:999px}
+.brand i{font-style:normal;color:var(--lime)}
+.pill{font:700 12.5px/1 var(--text);padding:9px 12px;border-radius:999px;display:flex;gap:7px;align-items:center}
+.pill::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--dim)}
+.pill.on::before{background:var(--lime);box-shadow:0 0 10px var(--lime)}
+.topbar .sp{flex:1}
+#cover{position:absolute;inset:0;display:grid;place-content:center;justify-items:center;gap:14px;padding:70px 26px 20px;text-align:center;background:radial-gradient(120% 90% at 50% 0,#23233A,#0A0A0B 70%)}
+#cover h2{font-size:clamp(24px,7vw,32px);font-weight:800;max-width:14ch}
+#cover h2 i{font-style:normal;color:var(--lime)}
+#cover p{color:var(--dim);font-size:14px;max-width:34ch}
+#cover button{padding:14px 22px;font-size:16px}
+#count{position:absolute;inset:0;display:grid;place-items:center;font:800 120px/1 var(--display);color:#fff;text-shadow:0 6px 30px rgba(0,0,0,.8);z-index:2}
+/* Lectura en vivo */
+#live{position:absolute;left:10px;right:10px;bottom:10px;border-radius:22px;padding:10px 10px 10px 14px;display:grid;grid-template-columns:1fr auto;gap:4px 8px;align-items:center;z-index:2}
+#cand{grid-column:1/-1;display:flex;gap:10px;align-items:center;min-height:30px;font:800 24px/1 var(--display);letter-spacing:-.03em}
+#cand .ring{width:22px;height:22px;border-radius:50%;background:conic-gradient(var(--lime) calc(var(--p,0)*1turn),rgba(255,255,255,.18) 0);-webkit-mask:radial-gradient(circle 6.5px,transparent 98%,#000);mask:radial-gradient(circle 6.5px,transparent 98%,#000)}
+#cand.ok{color:var(--lime)} #cand.idle{font:600 13.5px/1.3 var(--text);letter-spacing:0;color:var(--dim)}
+#frase{font:700 18px/1.25 var(--display);min-height:1.25em;word-break:break-word;max-height:3.75em;overflow:auto}
+#frase:empty::before{content:"La frase en señas se arma aquí";color:var(--dim);font:500 14px/1.3 var(--text)}
+#live .acts{display:flex;gap:6px}
+#live .acts button{width:40px;height:40px;padding:0;display:grid;place-items:center;font-size:17px;background:rgba(255,255,255,.1);border-color:transparent}
+#live .acts button.lime{background:var(--lime)}
+/* Respuesta en señas */
+#player{position:absolute;inset:0;background:#000;z-index:4;display:grid}
+#player .word{place-self:center;font:800 clamp(40px,14vw,76px)/1.05 var(--display);letter-spacing:-.04em;text-align:center;padding:60px 20px;word-break:break-word}
+#player .bar{position:absolute;left:10px;right:10px;bottom:10px;border-radius:22px;padding:10px 12px;display:flex;flex-direction:column;gap:8px}
+#clipCap{font:800 22px/1.1 var(--display);letter-spacing:-.03em}
+#clipCap small{font:600 13px/1 var(--text);color:var(--dim);letter-spacing:0;margin-left:8px}
+.steps{display:flex;gap:5px;overflow-x:auto;scrollbar-width:none} .steps::-webkit-scrollbar{display:none}
+.steps span{flex:none;font:700 12.5px/1 var(--text);padding:6px 10px;border-radius:999px;background:rgba(255,255,255,.1);color:var(--dim)}
+.steps span.on{background:var(--lime);color:var(--onLime)} .steps span.txt{outline:1px dashed rgba(255,255,255,.35)}
+#playerX{position:absolute;right:12px;top:calc(10px + env(safe-area-inset-top))}
+.tagme{position:absolute;left:12px;top:calc(10px + env(safe-area-inset-top));font:700 12.5px/1 var(--text);padding:10px 13px;border-radius:999px;color:var(--lime)}
 
-/* Responder */
-#player{background:#000;border-radius:16px;overflow:hidden;aspect-ratio:4/3;display:grid;place-items:center;position:relative}
-#player video{width:100%;height:100%;object-fit:cover;transform:scaleX(-1)}
-#player .word{color:#fff;font:800 clamp(34px,11vw,64px)/1.05 var(--display);text-align:center;padding:16px;word-break:break-word}
-#player .cap{position:absolute;left:0;right:0;bottom:0;padding:10px 14px;background:linear-gradient(transparent,rgba(0,0,0,.8));color:#fff;font:700 22px/1.2 var(--display);text-align:center}
+/* Conversación */
+#thread{overflow-y:auto;padding:14px 14px 6px;display:flex;flex-direction:column;gap:10px;scrollbar-width:none}
+#thread::-webkit-scrollbar{display:none}
+.empty{margin:auto 0;display:flex;flex-direction:column;gap:12px;padding:6px 4px}
+.empty h3{font-size:19px;font-weight:700}
+.empty p{color:var(--dim);font-size:14.5px}
+.sug{display:flex;gap:8px;flex-wrap:wrap}
+.sug button{font-weight:600;font-size:14px;padding:9px 13px;background:transparent}
+.msg{max-width:86%;border-radius:20px;padding:10px 13px 9px;display:flex;flex-direction:column;gap:6px;animation:in .25s ease-out}
+.msg b{font:600 11px/1 var(--text);letter-spacing:.09em;text-transform:uppercase;opacity:.7}
+.msg p{font:600 17px/1.3 var(--text);overflow-wrap:anywhere}
+.msg.them{align-self:flex-start;background:var(--lime);color:var(--onLime);border-bottom-left-radius:6px}
+.msg.me{align-self:flex-end;background:var(--s2);border:1px solid var(--line);border-bottom-right-radius:6px}
+.msg .mini{display:flex;gap:6px}
+.msg .mini button{font-size:12.5px;padding:6px 10px;background:rgba(255,255,255,.08);border-color:transparent}
+.msg.them .mini button{background:rgba(0,0,0,.12);color:var(--onLime)}
+@keyframes in{from{opacity:0;transform:translateY(8px)}}
+
+/* Teclado de respuesta */
+#composer{padding:8px 10px calc(10px + env(safe-area-inset-bottom));display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:end;border-top:1px solid var(--line);background:var(--s1)}
+#reply{font:500 16.5px/1.35 var(--text);color:var(--ink);background:var(--s2);border:1px solid var(--line);border-radius:22px;padding:11px 15px;resize:none;height:46px;max-height:120px;width:100%}
+.send{width:46px;height:46px;border-radius:50%;padding:0;display:grid;place-items:center}
+#hint{grid-column:1/-1;font-size:13px;color:var(--dim);min-height:0} #hint:empty{display:none} #hint.err{color:var(--bad)}
+
+/* Hoja inferior */
+#veil{position:absolute;inset:0;background:rgba(0,0,0,.5);z-index:8}
+#sheet{position:absolute;left:0;right:0;bottom:0;height:min(58dvh,560px);background:var(--s1);border:1px solid var(--line);border-bottom:0;border-radius:26px 26px 0 0;z-index:9;display:grid;grid-template-rows:auto 1fr;animation:up .28s cubic-bezier(.2,.8,.2,1)}
+#sheet.tall{height:86dvh}
+@keyframes up{from{transform:translateY(100%)}}
+.sheetTop{padding:10px 12px 8px;display:flex;gap:6px;align-items:center}
+.tabs{flex:1;display:flex;gap:4px;background:var(--s2);border-radius:999px;padding:4px;overflow-x:auto;scrollbar-width:none}
+.tabs button{flex:1;border:0;background:none;padding:9px 10px;color:var(--dim);font-size:14px;white-space:nowrap}
+.tabs button[aria-selected=true]{background:var(--ink);color:var(--bg)}
+.pane{overflow-y:auto;padding:6px 16px calc(22px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:12px}
+.pane h3{font-size:18px;font-weight:700}
+.pane .sub{color:var(--dim);font-size:14px}
+.field{display:flex;gap:8px}
+.field input{flex:1;min-width:0;font:500 16px/1.2 var(--text);color:var(--ink);background:var(--s2);border:1px solid var(--line);border-radius:999px;padding:12px 16px}
+.note{font-weight:600;font-size:14px;min-height:1.4em} .note.err{color:var(--bad)}
+.item{display:flex;gap:8px;align-items:center;background:var(--s2);border:1px solid var(--line);border-radius:16px;padding:8px 8px 8px 14px}
+.item b{flex:1;min-width:0;overflow-wrap:anywhere} .item small{color:var(--dim)}
+.item button{font-size:13px;padding:7px 11px} .item .del{color:var(--bad)}
 .chips{display:flex;gap:6px;flex-wrap:wrap}
-.chip{padding:6px 12px;border-radius:999px;border:1.5px solid var(--line);background:var(--soft);font-weight:650;font-size:15px}
-.chip.on{background:var(--teal);border-color:var(--teal);color:var(--onTeal)}
-.chip.txt{border-style:dashed;color:var(--muted)}
-.chip.on,.chip.txt.on{color:var(--onTeal)}
-button.chip{font-size:15px;padding:7px 13px}
-#bigText{position:fixed;inset:0;z-index:20;background:var(--ink);color:var(--bg);display:grid;place-items:center;padding:24px;text-align:center;font:800 clamp(34px,10vw,84px)/1.1 var(--display);word-break:break-word;cursor:pointer}
-
-/* Mis señas */
-.sign{display:flex;gap:10px;align-items:center;border:1.5px solid var(--line);border-radius:14px;padding:8px 10px;background:var(--soft)}
-.sign b{flex:1;min-width:0;font-size:17px;overflow-wrap:anywhere}
-.sign small{color:var(--muted)}
-.sign button{padding:8px 11px;font-size:14px}
-#signList{display:flex;flex-direction:column;gap:8px}
-.steps{margin:0;padding-left:22px;display:flex;flex-direction:column;gap:8px}
-.note{border-left:5px solid var(--sun);background:var(--soft);border-radius:0 12px 12px 0;padding:11px 14px}
-.msg{min-height:1.5em;font-weight:600} .msg.err{color:var(--bad)}
-
-nav{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(10px + env(safe-area-inset-bottom));width:min(520px,calc(100% - 20px));display:grid;grid-template-columns:repeat(4,1fr);gap:4px;padding:6px;border-radius:22px;background:var(--paper);border:1.5px solid var(--line);box-shadow:0 10px 30px rgba(0,0,0,.18);z-index:10}
-nav button{border:0;background:none;border-radius:16px;padding:8px 2px;display:flex;flex-direction:column;gap:3px;align-items:center;font-size:12.5px;color:var(--muted)}
-nav button svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-nav button[aria-selected=true]{background:var(--teal);color:var(--onTeal)}
-@media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
+.chips button{font-weight:600;font-size:14px;padding:8px 12px}
+.set{display:flex;gap:12px;align-items:center;justify-content:space-between;background:var(--s2);border:1px solid var(--line);border-radius:16px;padding:12px 14px;font-weight:600}
+.set input[type=checkbox]{width:22px;height:22px;accent-color:var(--lime);flex:none}
+.set input[type=range]{accent-color:var(--lime);width:46%}
+.how{display:grid;gap:10px;counter-reset:n}
+.how div{counter-increment:n;display:grid;grid-template-columns:34px 1fr;gap:10px;align-items:start}
+.how div::before{content:counter(n);width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:var(--lime);color:var(--onLime);font:800 15px/1 var(--display)}
+.warn{border-left:4px solid var(--lime);padding:2px 0 2px 12px;font-size:14.5px}
+#bigText{position:fixed;inset:0;z-index:30;background:var(--lime);color:var(--onLime);display:grid;place-items:center;padding:24px;text-align:center;font:800 clamp(36px,11vw,90px)/1.08 var(--display);letter-spacing:-.04em;word-break:break-word;cursor:pointer}
+@media (prefers-reduced-motion: reduce){*{animation:none!important}}
 </style>
 </head>
 <body>
-<main>
-  <header class="top">
-    <img src="icon.svg" alt="" width="48" height="48">
-    <div class="grow"><h1>Puente de Señas</h1><small>Conversar entre señas y voz</small></div>
-    <button id="installBtn" hidden>Instalar</button>
-  </header>
-  <p id="envMsg" class="note" hidden></p>
-
-  <!-- Cámara compartida por Entender y Mis señas -->
-  <section class="card" id="camCard">
-    <div class="stage">
-      <video id="video" playsinline muted></video>
-      <canvas id="overlay"></canvas>
-      <span class="badge" id="camBadge" hidden></span>
-      <div class="count" id="count" hidden></div>
-      <div class="cover" id="camCover">
-        <p style="font:700 20px/1.3 var(--display)">La cámara mira las manos y reconoce las señas.</p>
-        <button class="sun" id="camStart">Encender cámara</button>
-        <p id="camMsg" style="font-size:15px;opacity:.85">El video no se envía a ningún lugar: todo se procesa en este dispositivo.</p>
+<div id="app">
+  <section id="stage" aria-label="Cámara">
+    <video id="video" playsinline muted></video>
+    <canvas id="overlay"></canvas>
+    <div id="cover">
+      <h2>Habla con las manos. <i>Responde en señas.</i></h2>
+      <p id="camMsg">La cámara lee las señas de la otra persona. El video no sale de este dispositivo.</p>
+      <button class="lime" id="camStart">Encender cámara</button>
+    </div>
+    <div class="topbar">
+      <span class="brand glass">puente<i>.</i></span>
+      <span class="pill glass" id="camBadge" hidden></span>
+      <span class="sp"></span>
+      <button class="ic glass" id="menuBtn" aria-label="Señas, ajustes y ayuda"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg></button>
+    </div>
+    <div id="count" hidden></div>
+    <div id="live" class="glass" hidden>
+      <div id="cand" class="idle" aria-live="polite"></div>
+      <p id="frase" aria-live="polite"></p>
+      <div class="acts">
+        <button id="spaceBtn" aria-label="Espacio entre palabras" title="Espacio">␣</button>
+        <button id="backBtn" aria-label="Borrar la última seña" title="Borrar">⌫</button>
+        <button id="sendThem" class="lime" aria-label="Pasar la frase a la conversación" title="Listo">✓</button>
       </div>
     </div>
+    <div id="player" hidden>
+      <video id="clip" playsinline muted></video>
+      <div class="word" id="clipWord" hidden></div>
+      <span class="tagme glass">Tu respuesta en señas</span>
+      <button class="ic glass" id="playerX" aria-label="Cerrar">✕</button>
+      <div class="bar glass"><div id="clipCap"></div><div class="steps" id="steps"></div></div>
+    </div>
   </section>
 
-  <section id="tab-entender" class="card">
-    <span class="tag">Entender</span>
-    <h2>Lo que dicen las manos</h2>
-    <p class="now" id="now" aria-live="polite"></p>
-    <p class="frase" id="frase" aria-live="polite"></p>
-    <div class="row">
-      <button class="primary" id="speakBtn">Leer en voz alta</button>
-      <button id="spaceBtn">Espacio</button>
-      <button id="backBtn">Borrar última</button>
-      <button id="clearBtn">Limpiar</button>
-    </div>
-    <div class="row">
-      <label><input type="checkbox" id="autoSpeak" checked> Decir cada seña en voz alta</label>
-      <label><input type="checkbox" id="useModel" checked> Reconocer abecedario, números y palabras básicas (en pruebas)</label>
-    </div>
-    <label>Exigencia <input type="range" id="sens" min="60" max="150" value="100"> <span id="sensLab" class="sub"></span></label>
-    <p class="sub" id="entMsg"></p>
-  </section>
+  <section id="thread" aria-label="Conversación"></section>
 
-  <section id="tab-responder" class="card" hidden>
-    <span class="tag">Responder</span>
-    <h2>Tu respuesta, en señas</h2>
-    <textarea id="reply" placeholder="Escribe o dicta lo que quieres responder" aria-label="Respuesta"></textarea>
-    <div class="row">
-      <button class="primary" id="playBtn">Mostrar en señas</button>
-      <button id="dictBtn">Dictar con la voz</button>
-      <button id="bigBtn">Mostrar texto grande</button>
-    </div>
-    <p class="msg" id="repMsg"></p>
-    <div id="player" hidden><video id="clip" playsinline muted></video><div class="word" id="clipWord" hidden></div><div class="cap" id="clipCap"></div></div>
-    <div class="chips" id="repChips"></div>
-    <p class="sub">Las palabras sin seña propia se deletrean con el abecedario. Solo lo que no se puede deletrear (borde punteado) se muestra escrito.</p>
-    <h3 id="dictH">Señas disponibles</h3>
-    <p class="sub">Toca una para verla. Escribe tu respuesta con estas palabras y con las señas que hayas grabado.</p>
-    <div class="chips" id="dictChips"></div>
-    <h3>Abecedario y números</h3>
-    <p class="sub">Cualquier palabra que no tenga seña se deletrea sola con estas letras. No hay señas para los números 0, 2 y 3.</p>
-    <div class="chips" id="letChips"></div>
-    <p class="sub" id="dictCred"></p>
-  </section>
+  <form id="composer">
+    <button type="button" class="ic" id="dictBtn" aria-label="Dictar con la voz"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>
+    <textarea id="reply" rows="1" placeholder="Escribe tu respuesta…" aria-label="Tu respuesta"></textarea>
+    <button class="send lime" id="playBtn" aria-label="Mostrar en señas"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+    <p id="hint"></p>
+  </form>
 
-  <section id="tab-senas" class="card" hidden>
-    <span class="tag">Mis señas</span>
-    <h2>Enséñale una seña a la app</h2>
-    <p class="sub">Escribe la palabra o letra y haz la seña cinco veces frente a la cámara. La app guarda el movimiento de las manos para reconocerla y un video corto para responder con ella.</p>
-    <div class="row">
-      <input class="grow" id="newName" type="text" placeholder="Palabra o letra, por ejemplo: hola" aria-label="Nombre de la seña" maxlength="40">
-      <button class="primary" id="recBtn">Grabar seña</button>
+  <div id="veil" hidden></div>
+  <section id="sheet" hidden aria-label="Más opciones">
+    <div class="sheetTop">
+      <div class="tabs" role="tablist">
+        <button role="tab" data-pane="ensenar" aria-selected="true">Enseñar</button>
+        <button role="tab" data-pane="senas" aria-selected="false">Señas</button>
+        <button role="tab" data-pane="ajustes" aria-selected="false">Ajustes</button>
+        <button role="tab" data-pane="ayuda" aria-selected="false">Ayuda</button>
+      </div>
+      <button class="ic" id="sheetX" aria-label="Cerrar">✕</button>
     </div>
-    <p class="msg" id="recMsg"></p>
-    <h3 id="listH">Señas guardadas</h3>
-    <div id="signList"></div>
-    <div class="row">
-      <button id="expBtn">Guardar copia de mis señas</button>
-      <label class="grow" style="font-weight:650"><span class="sub">Cargar copia:</span> <input type="file" id="impFile" accept=".json,application/json"></label>
+
+    <div class="pane" id="pane-ensenar">
+      <h3>Enséñale una seña a la cámara</h3>
+      <p class="sub">Escribe la palabra y haz la seña cinco veces mirando la cámara de arriba. Queda guardada para leerla y para responder con ella.</p>
+      <div class="field"><input id="newName" type="text" placeholder="Palabra, por ejemplo: gracias" aria-label="Nombre de la seña" maxlength="40"><button class="lime" id="recBtn">Grabar</button></div>
+      <p class="note" id="recMsg"></p>
+      <h3 id="listH">Tus señas</h3>
+      <div id="signList" style="display:grid;gap:8px"></div>
     </div>
-    <p class="msg" id="expMsg"></p>
-  </section>
 
-  <section id="tab-ayuda" class="card" hidden>
-    <span class="tag">Cómo funciona</span>
-    <h2>Un puente entre señas y voz</h2>
-    <ol class="steps">
-      <li><b>Responder.</b> Escribe o dicta tu respuesta y la app la muestra seña por seña en video. Ya trae 55 señas básicas de la Lengua de Señas Colombiana (saludos, cortesía, familia, sentimientos y preguntas), el abecedario y varios números. Lo que no tenga seña lo deletrea letra por letra.</li>
-      <li><b>Agregar señas.</b> En “Mis señas”, una persona que sepa lengua de señas graba cada seña nueva cinco veces. Queda disponible para responder y para que la cámara la reconozca.</li>
-      <li><b>Entender.</b> La persona sorda hace señas frente a la cámara. La app reconoce el abecedario, los números y algunas palabras básicas, además de las señas que se le enseñen; arma la frase y la lee en voz alta.</li>
-    </ol>
-    <p class="note"><b>Importante.</b> La app muestra las señas una tras otra, en el orden en que escribes: no aplica la gramática propia de la lengua de señas ni las expresiones de la cara. Usa frases cortas y sencillas. Sirve para conversaciones básicas y no reemplaza a un intérprete en trámites médicos, legales o de emergencia. La cámara reconoce el abecedario, varios números y diez palabras básicas (en pruebas), además de las señas grabadas en “Mis señas”.</p>
-    <p class="sub">Los videos del diccionario provienen de los conjuntos de datos LSC50 (Flórez-Sierra y otros, Scientific Data, 2024) y LSC70 (Muñoz Galindez, Villota Coral y Vargas-Canas, Universidad del Cauca, 2024), publicados con licencia Creative Commons Atribución 4.0. Fueron recortados y convertidos para esta app; sus autores no participan en ella.</p>
-    <p class="sub">Consejos: buena luz, fondo sencillo, las manos completas dentro de la imagen y la misma distancia que usaste al enseñar la seña.</p>
-  </section>
-</main>
+    <div class="pane" id="pane-senas" hidden>
+      <h3 id="dictH">Señas para responder</h3>
+      <p class="sub">Toca una para verla arriba. Lo que escribas y no tenga seña se deletrea solo.</p>
+      <div class="chips" id="dictChips"></div>
+      <h3>Abecedario y números</h3>
+      <div class="chips" id="letChips"></div>
+      <p class="sub" id="dictCred"></p>
+    </div>
 
-<nav role="tablist" aria-label="Secciones">
-  <button role="tab" data-tab="entender" aria-selected="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>Entender</button>
-  <button role="tab" data-tab="responder" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12a8 8 0 0 1-12 7l-5 1 1-4.500A8 8 0 1 1 21 12Z"/></svg>Responder</button>
-  <button role="tab" data-tab="senas" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 13V5.500a1.500 1.500 0 0 1 3 0V11m0-1V4.500a1.500 1.500 0 0 1 3 0V11m0-4.500a1.500 1.500 0 0 1 3 0V12m0-2a1.500 1.500 0 0 1 3 0v4a7 7 0 0 1-7 7h-1a6 6 0 0 1-5-2.700L4 14a1.600 1.600 0 0 1 2.600-1.800L8 14"/></svg>Mis señas</button>
-  <button role="tab" data-tab="ayuda" aria-selected="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M9.500 9.500a2.500 2.500 0 1 1 3.500 2.300c-.700.400-1 1-1 1.700M12 17h.01"/></svg>Ayuda</button>
-</nav>
+    <div class="pane" id="pane-ajustes" hidden>
+      <label class="set">Decir en voz alta lo que leo <input type="checkbox" id="autoSpeak" checked></label>
+      <label class="set" id="useModelRow">Leer abecedario, números y palabras básicas <input type="checkbox" id="useModel" checked></label>
+      <label class="set">Exigencia al leer <input type="range" id="sens" min="60" max="150" value="100"><span id="sensLab" class="sub" style="font-weight:600;color:var(--dim)"></span></label>
+      <p class="sub" id="entMsg"></p>
+      <button id="installBtn" hidden>Instalar la app en este teléfono</button>
+      <h3>Copia de tus señas</h3>
+      <div class="chips"><button id="expBtn">Guardar copia</button><label class="set" style="padding:8px 14px;border-radius:999px;gap:8px">Cargar <input type="file" id="impFile" accept=".json,application/json" style="max-width:170px"></label></div>
+      <p class="note" id="expMsg"></p>
+    </div>
+
+    <div class="pane" id="pane-ayuda" hidden>
+      <h3>Una conversación, dos idiomas</h3>
+      <div class="how">
+        <div><p><b>La otra persona hace señas</b> frente a la cámara. La app las lee, arma la frase y, al tocar ✓, la pasa a la conversación y la dice en voz alta.</p></div>
+        <div><p><b>Tú respondes escribiendo o dictando.</b> Arriba aparece tu respuesta seña por seña; lo que no tenga seña se deletrea.</p></div>
+        <div><p><b>Enséñale más señas</b> en “Enseñar”: sirven para leer y para responder.</p></div>
+      </div>
+      <p class="warn" id="helpReco"></p>
+      <p class="warn">Las señas se muestran una tras otra, en el orden en que escribes: no se aplica la gramática propia de la lengua de señas ni las expresiones de la cara. Usa frases cortas. No reemplaza a un intérprete en citas médicas, trámites legales o emergencias.</p>
+      <p class="sub">Videos y datos de entrenamiento: conjuntos LSC50 (Flórez-Sierra y otros, Scientific Data, 2024) y LSC70 (Muñoz Galindez, Villota Coral y Vargas-Canas, Universidad del Cauca, 2024), licencia Creative Commons Atribución 4.0. Fueron recortados y convertidos para esta app; sus autores no participan en ella.</p>
+    </div>
+  </section>
+</div>
 <div id="bigText" hidden></div>
 
 <script type="module">
 import { frameHands, segVec, threshold, Recognizer, Model, VEC } from './reco.js';
 const $ = id => document.getElementById(id);
-const msg = (id, t, err) => { const e = $(id); e.textContent = t; e.classList.toggle('err', !!err); };
+const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+const note = (id, t, err) => { const e = $(id); e.textContent = t; e.classList.toggle('err', !!err); };
 const norm = s => s.toLowerCase().replace(/ñ/g, '\u0001').normalize('NFD').replace(/\u0001/g, 'ñ').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9ñ ]/g, ' ').replace(/\s+/g, ' ').trim();
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
@@ -209,24 +244,25 @@ const db = await new Promise((ok, no) => {
   r.onsuccess = () => ok(r.result); r.onerror = () => no(r.error);
 }).catch(() => null);
 const tx = (mode, fn) => new Promise((ok, no) => { const t = db.transaction('signs', mode), q = fn(t.objectStore('signs')); t.oncomplete = () => ok(q.result); t.onerror = () => no(t.error); });
-let SIGNS = (db ? await tx('readonly', s => s.getAll()) : []).map(s => ({ ...s, samples: (s.samples || []).filter(x => x.length === VEC) }));   // {key, name, samples:[Float32Array], th, clip:Blob|null}
+// {key, name, samples:[Float32Array], th, clip:Blob|null}. Las muestras de un formato anterior se descartan (hay que volver a enseñar).
+let SIGNS = (db ? await tx('readonly', s => s.getAll()) : []).map(s => ({ ...s, samples: (s.samples || []).filter(x => x.length === VEC) }));
 const putSign = s => db && tx('readwrite', st => st.put(s));
-// Diccionario incluido: videos de señas colombianas con licencia abierta (ver senas/CREDITOS.txt). Solo sirve para responder.
+const delSign = k => db && tx('readwrite', st => st.delete(k));
+// Diccionario incluido: videos de señas colombianas con licencia abierta (ver senas/CREDITOS.txt).
 const DICT = await fetch('senas/indice.json').then(r => r.json()).then(d => d.senas.map(e => ({ name: e.n, url: 'senas/' + e.f, alias: e.a || [], tilde: e.t || 0, letra: !!e.l }))).catch(() => []);
 const media = s => !!s && !!(s.url || s.clip);
-const delSign = k => db && tx('readwrite', st => st.delete(k));
 
 const WIN = 1600;                                   // duración de cada toma al enseñar una seña (ms)
 const RECO = new Recognizer([]);
 const MODEL = await fetch('senas/modelo.json').then(r => r.json()).then(j => new Model(j)).catch(() => null);
 let useModel = true; try { useModel = localStorage.getItem('ps.modelo') !== '0'; } catch {}
 
-/* ---------- Cámara y detector ---------- */
-let landmarker = null, stream = null, buf = [], nHands = -1;
+/* ---------- Cámara y detector de manos ---------- */
+let landmarker = null, stream = null, buf = [], nHands = -1, recording = false;
 const video = $('video'), cv = $('overlay'), g = cv.getContext('2d');
 const BONES = [[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[5,9],[9,10],[10,11],[11,12],[9,13],[13,14],[14,15],[15,16],[13,17],[17,18],[18,19],[19,20],[0,17]];
 async function startCam() {
-  $('camStart').disabled = true; $('camMsg').textContent = 'Preparando el reconocimiento de manos…';
+  $('camStart').disabled = true; $('camMsg').textContent = 'Preparando la lectura de manos…';
   try {
     if (!landmarker) {
       const { FilesetResolver, HandLandmarker } = await import('./lib/vision_bundle.mjs');
@@ -236,7 +272,7 @@ async function startCam() {
     }
     stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } }, audio: false });
     video.srcObject = stream; await video.play();
-    $('camCover').hidden = true; requestAnimationFrame(loop);
+    $('cover').hidden = true; $('live').hidden = false; paintCand(); requestAnimationFrame(loop);
   } catch (e) {
     $('camStart').disabled = false;
     $('camMsg').textContent = e.name === 'NotAllowedError' ? 'No hay permiso para usar la cámara. Actívalo en los ajustes del navegador y vuelve a intentar.' : 'No se pudo encender la cámara: ' + (e.message || e.name);
@@ -258,22 +294,23 @@ function onHands(lms, now, aspect) {
   const hs = frameHands(lms, aspect, null);
   buf.push({ t: now, h: hs }); while (buf.length && buf[0].t < now - WIN) buf.shift();
   if (recording) return;
-  if (hs.length !== nHands) {                        // aviso visible de lo que ve la cámara
-    nHands = hs.length; $('camBadge').hidden = false;
-    $('camBadge').textContent = nHands === 0 ? 'No veo manos' : nHands === 1 ? 'Veo 1 mano' : 'Veo 2 manos';
+  if (hs.length !== nHands) {
+    nHands = hs.length; const b = $('camBadge'); b.hidden = false; b.classList.toggle('on', nHands > 0);
+    b.textContent = nHands === 0 ? 'Sin manos a la vista' : nHands === 1 ? 'Veo 1 mano' : 'Veo 2 manos';
   }
+  if (!$('player').hidden) return;                    // mientras se muestra la respuesta no se lee
   const s = RECO.push(now, hs);
-  if (s) { words.push(s.name); $('now').textContent = s.name; paintFrase(); if ($('autoSpeak').checked) say(s.name); }
-  else if (!hs.length && RECO.last === null && $('now').textContent) $('now').textContent = '';
+  if (s) { words.push(s.name); flash = { name: s.name, until: now + 900 }; paintFrase(); if ($('autoSpeak').checked) say(s.name); }
+  paintCand(now);
 }
 function drawHands(lms) {
   const w = cv.width = cv.clientWidth, h = cv.height = cv.clientHeight; g.clearRect(0, 0, w, h);
   const vw = video.videoWidth || 4, vh = video.videoHeight || 3, sc = Math.max(w / vw, h / vh), ox = (w - vw * sc) / 2, oy = (h - vh * sc) / 2;
   const P = p => [ox + p.x * vw * sc, oy + p.y * vh * sc];
-  g.lineWidth = 3; g.strokeStyle = '#FFC53D'; g.fillStyle = '#fff';
+  g.lineWidth = 3; g.strokeStyle = '#C8F53C'; g.fillStyle = '#fff';
   for (const lm of lms) {
     g.beginPath(); for (const [a, b] of BONES) { g.moveTo(...P(lm[a])); g.lineTo(...P(lm[b])); } g.stroke();
-    for (const p of lm) { g.beginPath(); g.arc(...P(p), 3.5, 0, 7); g.fill(); }
+    for (const p of lm) { g.beginPath(); g.arc(...P(p), 3.2, 0, 7); g.fill(); }
   }
 }
 function currentVec() {
@@ -281,23 +318,118 @@ function currentVec() {
   return segVec(fr.map(b => b.h));
 }
 
-/* ---------- Entender: de señas a texto y voz ---------- */
-let words = [];
+/* ---------- Lectura: de señas a texto y voz ---------- */
+let words = [], flash = null, candKey = '';
 const say = t => { if (!('speechSynthesis' in window) || !t) return; const u = new SpeechSynthesisUtterance(t); u.lang = 'es-CO'; const v = speechSynthesis.getVoices().find(v => v.lang.startsWith('es')); if (v) u.voice = v; speechSynthesis.speak(u); };
 // Las letras sueltas se juntan en una palabra; las palabras se separan con espacio.
 const sentence = () => words.reduce((s, w, i) => s + (i && !(w.length === 1 && words[i - 1].length === 1) ? ' ' : '') + (w === ' ' ? '' : w), '').replace(/\s+/g, ' ').trim();
 function paintFrase() { $('frase').textContent = sentence(); }
-$('speakBtn').onclick = () => say(sentence());
+// Muestra la seña que se está confirmando, con un anillo que se llena mientras se sostiene.
+function paintCand(now = 0) {
+  const c = $('cand'), p = RECO.pending;
+  const state = flash && now < flash.until ? 'ok:' + flash.name : p ? 'p:' + p.s.name + ':' + p.n : nHands > 0 ? 'look' : 'idle';
+  if (state === candKey) return; candKey = state; c.replaceChildren();
+  if (state.startsWith('ok:')) { c.className = 'ok'; c.textContent = flash.name + ' ✓'; }
+  else if (p) { c.className = ''; const r = el('span', 'ring'); r.style.setProperty('--p', Math.min(1, p.n / p.need)); c.append(r, p.s.name); }
+  else { c.className = 'idle'; c.textContent = nHands > 0 ? 'Sostén la seña un momento…' : 'Muestra una mano para empezar a leer'; }
+}
 $('spaceBtn').onclick = () => { if (words.length && words.at(-1) !== ' ') words.push(' '); RECO.last = null; };
 $('backBtn').onclick = () => { words.pop(); RECO.last = null; paintFrase(); };
-$('clearBtn').onclick = () => { words = []; RECO.last = null; $('now').textContent = ''; paintFrase(); };
-const paintSens = () => { const v = +$('sens').value; RECO.o.factor = v / 100; $('sensLab').textContent = v < 90 ? 'estricta' : v > 115 ? 'flexible' : 'normal'; };
-$('sens').oninput = paintSens; paintSens();
-$('useModel').checked = useModel; $('useModel').hidden = !MODEL;
-$('useModel').onchange = () => { useModel = $('useModel').checked; try { localStorage.setItem('ps.modelo', useModel ? '1' : '0'); } catch {} renderSigns(); };
+$('sendThem').onclick = () => {
+  const t = sentence(); if (!t) return;
+  addMsg('them', t); if ($('autoSpeak').checked) say(t);
+  words = []; RECO.last = null; paintFrase();
+};
 
-/* ---------- Mis señas: enseñar ---------- */
-let recording = false;
+/* ---------- Conversación ---------- */
+const thread = $('thread');
+function emptyState() {
+  const d = el('div', 'empty');
+  d.append(el('h3', null, 'Empieza la conversación'), el('p', null, 'Arriba se leen las señas. Aquí abajo escribes y tu respuesta se muestra en señas.'));
+  const s = el('div', 'sug');
+  for (const t of ['Hola, ¿cómo estás?', 'Bienvenido', '¿Cómo te llamas?', 'Con gusto']) { const b = el('button', null, t); b.type = 'button'; b.onclick = () => { $('reply').value = t; sendReply(); }; s.append(b); }
+  d.append(s); thread.replaceChildren(d);
+}
+function addMsg(who, text) {
+  thread.querySelector('.empty')?.remove();
+  const m = el('div', 'msg ' + who), mini = el('div', 'mini');
+  m.append(el('b', null, who === 'them' ? 'En señas' : 'Tú'), el('p', null, text));
+  if (who === 'them') { const b = el('button', null, 'Oír'); b.onclick = () => say(text); mini.append(b); }
+  else { const a = el('button', null, 'Ver en señas'), c = el('button', null, 'Texto grande'); a.onclick = () => playSeq(plan(text)); c.onclick = () => { $('bigText').textContent = text; $('bigText').hidden = false; }; mini.append(a, c); }
+  m.append(mini); thread.append(m); thread.scrollTop = thread.scrollHeight;
+}
+$('bigText').onclick = () => { $('bigText').hidden = true; };
+
+/* ---------- Respuesta: de texto o voz a señas ---------- */
+// La lengua de señas no usa artículos ni el verbo ser/estar como enlace: se omiten.
+const OMITIR = new Set('el la los las un una unos unas es esta estoy estas son estan soy eres somos estamos'.split(' '));
+function plan(text) {
+  const hasQ = /[¿?]/.test(text), tilde = w => /[áéíóú]/i.test(w);
+  const raw = text.split(/\s+/).map(w => [norm(w), w.replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, '')]).filter(x => x[0] && !x[0].includes(' ')), ws = raw.map(x => x[0]);
+  const byKey = new Map();
+  for (const d of DICT) for (const k of [d.name, ...d.alias]) byKey.set(norm(k), d);
+  for (const s of SIGNS) byKey.set(s.key, s);                      // las señas propias mandan sobre el diccionario
+  const out = [];
+  for (let i = 0; i < ws.length;) {
+    let hit = null;
+    for (let n = Math.min(4, ws.length - i); n > 0 && !hit; n--) {
+      const s = byKey.get(ws.slice(i, i + n).join(' '));
+      if (media(s) && !(s.tilde && !(hasQ && s.tilde === 1) && !raw.slice(i, i + n).some(x => tilde(x[1])))) hit = { sign: s, text: s.name, n };
+    }
+    if (hit) { out.push(hit); i += hit.n; continue; }
+    const w = ws[i++]; if (OMITIR.has(w)) continue;
+    const letters = [...w].map(c => { const s = byKey.get(c); return media(s) ? s : null; });
+    if (w.length > 1 && letters.every(Boolean)) letters.forEach(s => out.push({ sign: s, text: s.name, of: raw[i - 1][1] || w }));
+    else out.push({ sign: null, text: raw[i - 1][1] || w });
+  }
+  return out;
+}
+let playing = 0;
+async function playSeq(items) {
+  if (!items.length) return;
+  const run = ++playing, steps = $('steps'), clip = $('clip'), word = $('clipWord'), cap = $('clipCap');
+  closeSheet(); $('player').hidden = false;
+  steps.replaceChildren(...items.map(it => el('span', media(it.sign) ? '' : 'txt', it.text)));
+  for (let i = 0; i < items.length && run === playing; i++) {
+    const it = items[i]; [...steps.children].forEach((c, k) => c.classList.toggle('on', k === i)); steps.children[i].scrollIntoView({ inline: 'center', block: 'nearest' });
+    cap.replaceChildren(it.text); if (it.of) cap.append(el('small', null, 'deletreando “' + it.of + '”'));
+    if (media(it.sign)) {
+      word.hidden = true; clip.hidden = false;
+      const own = !it.sign.url, url = own ? URL.createObjectURL(it.sign.clip) : it.sign.url;
+      clip.style.transform = own ? 'scaleX(-1)' : 'none';             // los videos propios son de cámara frontal (espejo)
+      clip.src = url; clip.playbackRate = clip.defaultPlaybackRate = it.sign.letra ? 1.7 : 1;
+      await new Promise(ok => { clip.onended = clip.onerror = ok; clip.play().catch(ok); setTimeout(ok, 7000); });
+      if (own) URL.revokeObjectURL(url);
+    } else { clip.hidden = true; word.hidden = false; word.textContent = it.text; await sleep(1400); }
+    await sleep(160);
+  }
+  if (run === playing) { await sleep(500); if (run === playing) closePlayer(); }
+}
+function closePlayer() { playing++; $('player').hidden = true; $('clip').pause(); RECO.reset(); }
+$('playerX').onclick = closePlayer;
+function sendReply() {
+  const t = $('reply').value.trim();
+  if (!t) return note('hint', 'Escribe o dicta primero tu respuesta.', true);
+  const items = plan(t), miss = items.filter(i => !media(i.sign)).length;
+  note('hint', miss ? `${miss} ${miss === 1 ? 'parte se muestra escrita' : 'partes se muestran escritas'}: no ${miss === 1 ? 'tiene' : 'tienen'} seña ni se ${miss === 1 ? 'puede' : 'pueden'} deletrear.` : '');
+  addMsg('me', t); $('reply').value = ''; grow(); playSeq(items);
+}
+$('composer').onsubmit = e => { e.preventDefault(); sendReply(); };
+const grow = () => { const r = $('reply'); r.style.height = '46px'; r.style.height = Math.min(120, r.scrollHeight + 2) + 'px'; };
+$('reply').oninput = () => { grow(); note('hint', ''); };
+$('reply').onkeydown = e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendReply(); } };
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+if (!SR) $('dictBtn').hidden = true;
+$('dictBtn').onclick = () => {
+  const r = new SR(); r.lang = 'es-CO'; r.interimResults = false;
+  note('hint', 'Te escucho: habla ahora.'); $('dictBtn').disabled = true;
+  r.onresult = e => { $('reply').value = ($('reply').value + ' ' + e.results[0][0].transcript).trim(); grow(); note('hint', 'Revisa el texto y toca la flecha.'); };
+  r.onerror = () => note('hint', 'No pude escuchar. Revisa el permiso del micrófono o escribe la respuesta.', true);
+  r.onend = () => { $('dictBtn').disabled = false; };
+  r.start();
+};
+
+/* ---------- Enseñar señas ---------- */
 async function captureSample() {
   for (let n = 3; n > 0; n--) { $('count').hidden = false; $('count').textContent = n; await sleep(800); }
   $('count').textContent = '●'; buf = []; await sleep(WIN + 100); $('count').hidden = true;
@@ -317,51 +449,50 @@ function recordClip(ms) {
 }
 $('recBtn').onclick = async () => {
   const name = $('newName').value.trim().replace(/\s+/g, ' '), key = norm(name);
-  if (!key) return msg('recMsg', 'Escribe primero la palabra o letra de la seña.', true);
-  if (!stream) { msg('recMsg', 'Enciende la cámara para grabar la seña.', true); return $('camStart').focus(); }
-  recording = true; $('recBtn').disabled = true; $('camCard').scrollIntoView({ block: 'start', behavior: 'smooth' });
+  if (!key) return note('recMsg', 'Escribe primero la palabra o letra de la seña.', true);
+  if (!stream) { note('recMsg', 'Enciende primero la cámara (botón de arriba).', true); return; }
+  recording = true; $('recBtn').disabled = true; $('live').hidden = true; $('newName').blur();
   const samples = []; let clip = null, fails = 0;
   try {
     while (samples.length < 5 && fails < 4) {
-      $('camBadge').hidden = false; $('camBadge').textContent = `“${name}” · toma ${samples.length + 1} de 5`;
-      msg('recMsg', `Toma ${samples.length + 1} de 5: prepárate y haz la seña cuando aparezca el punto.`);
+      $('camBadge').hidden = false; $('camBadge').classList.add('on'); $('camBadge').textContent = `“${name}” · toma ${samples.length + 1} de 5`;
+      note('recMsg', `Toma ${samples.length + 1} de 5: haz la seña cuando aparezca el punto.`);
       const clipP = samples.length === 0 && !clip ? sleep(2400).then(() => recordClip(WIN + 300)) : null;
       const v = await captureSample();
       if (clipP) clip = await clipP;
-      if (v) samples.push(v); else { fails++; clip = samples.length ? clip : null; msg('recMsg', 'No vi bien las manos. Acércate, busca buena luz y repite.', true); await sleep(1200); }
+      if (v) samples.push(v); else { fails++; clip = samples.length ? clip : null; note('recMsg', 'No vi bien las manos. Acércate, busca buena luz y repite.', true); await sleep(1200); }
     }
-    if (samples.length < 5) return msg('recMsg', 'No se pudo grabar la seña: las manos no se vieron con claridad. Inténtalo de nuevo con más luz.', true);
+    if (samples.length < 5) return note('recMsg', 'No se pudo grabar: las manos no se vieron con claridad. Inténtalo con más luz.', true);
     const old = SIGNS.find(s => s.key === key), sign = { key, name, samples, th: threshold(samples), clip: clip || old?.clip || null };
     await putSign(sign); SIGNS = SIGNS.filter(s => s.key !== key).concat(sign);
     $('newName').value = ''; renderSigns();
-    msg('recMsg', `Seña “${name}” guardada${sign.clip ? ' con su video' : ' (este navegador no permitió guardar el video)'}. Pruébala en Entender.`);
-  } finally { recording = false; nHands = -1; $('recBtn').disabled = false; $('camBadge').hidden = true; $('count').hidden = true; buf = []; }
+    note('recMsg', `“${name}” quedó guardada${sign.clip ? ' con su video' : ' (este navegador no permitió guardar el video)'}.`);
+  } finally { recording = false; nHands = -1; $('recBtn').disabled = false; $('count').hidden = true; $('live').hidden = !stream; buf = []; RECO.reset(); }
 };
 function renderSigns() {
   RECO.bank = SIGNS.filter(s => s.samples.length >= 3); RECO.model = useModel ? MODEL : null;
   const box = $('signList'); box.replaceChildren();
-  $('listH').textContent = SIGNS.length ? `Señas guardadas (${SIGNS.length})` : 'Señas guardadas';
-  if (!SIGNS.length) { const p = document.createElement('p'); p.className = 'sub'; p.textContent = 'Todavía no hay señas. Graba la primera arriba.'; box.append(p); }
+  $('listH').textContent = SIGNS.length ? `Tus señas (${SIGNS.length})` : 'Tus señas';
+  if (!SIGNS.length) box.append(el('p', 'sub', 'Todavía no has enseñado ninguna.'));
   for (const s of [...SIGNS].sort((a, b) => a.key.localeCompare(b.key, 'es'))) {
-    const d = document.createElement('div'), b = document.createElement('b'), sm = document.createElement('small'), see = document.createElement('button'), del = document.createElement('button');
-    d.className = 'sign'; b.textContent = s.name; sm.textContent = s.samples.length < 3 ? 'volver a enseñar' : s.clip ? 'con video' : 'sin video';
-    see.textContent = 'Ver'; see.disabled = !s.clip; see.onclick = () => { tab('responder'); playSeq([{ sign: s, text: s.name }]); };
-    del.textContent = 'Borrar'; del.className = 'danger';
+    const d = el('div', 'item'), see = el('button', null, 'Ver'), del = el('button', 'del', 'Borrar');
+    see.disabled = !s.clip; see.onclick = () => playSeq([{ sign: s, text: s.name }]);
     del.onclick = async () => { if (!confirm(`¿Borrar la seña “${s.name}”?`)) return; await delSign(s.key); SIGNS = SIGNS.filter(x => x !== s); renderSigns(); };
-    d.append(b, sm, see, del); box.append(d);
+    d.append(el('b', null, s.name), el('small', null, s.samples.length < 3 ? 'volver a enseñar' : s.clip ? 'con video' : 'sin video'), see, del); box.append(d);
   }
-  $('entMsg').textContent = (RECO.model ? 'La cámara reconoce el abecedario, los números 1 y 4 a 10, mil, millón y las palabras hola, yo, nombre, buenas, días, tardes, noches, años, gustar y licor. Haz cada seña con calma y sostenla un segundo. Está en pruebas: puede equivocarse, sobre todo entre señas parecidas. ' : '') +
-    (RECO.bank.length ? `También reconoce las señas que le enseñaste: ${RECO.bank.map(s => s.name).join(', ')}.` : 'Para otras señas, enséñaselas en “Mis señas”.');
+  const base = RECO.model ? 'La cámara lee el abecedario, los números 1 y 4 a 10, mil, millón y las palabras hola, yo, nombre, buenas, días, tardes, noches, años, gustar y licor. Hay que sostener cada seña un momento hasta que el anillo se llene.' : 'La lectura automática está apagada: la cámara solo lee las señas que le enseñes.';
+  const mine = RECO.bank.length ? ` También lee tus señas: ${RECO.bank.map(s => s.name).join(', ')}.` : '';
+  $('entMsg').textContent = base + mine; $('helpReco').textContent = base + mine + ' Puede equivocarse entre señas parecidas: revisa la frase antes de tocar ✓.';
 }
 
 /* ---------- Copia de seguridad (incluye los videos) ---------- */
 const b64 = blob => new Promise(ok => { const r = new FileReader(); r.onload = () => ok(r.result); r.readAsDataURL(blob); });
 $('expBtn').onclick = async () => {
-  if (!SIGNS.length) return msg('expMsg', 'No hay señas para guardar.', true);
-  const data = { app: 'puente-senas', v: 1, signs: [] };
+  if (!SIGNS.length) return note('expMsg', 'No hay señas para guardar.', true);
+  const data = { app: 'puente-senas', v: 2, signs: [] };
   for (const s of SIGNS) data.signs.push({ key: s.key, name: s.name, th: s.th, samples: s.samples.map(x => Array.from(x, n => +n.toFixed(4))), clip: s.clip ? await b64(s.clip) : null });
-  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(data)], { type: 'application/json' })); a.download = 'mis-senas.json'; a.click();
-  msg('expMsg', 'Copia guardada en tus descargas. Sirve para pasar las señas a otro teléfono.');
+  const a = el('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(data)], { type: 'application/json' })); a.download = 'mis-senas.json'; a.click();
+  note('expMsg', 'Copia guardada en tus descargas.');
 };
 $('impFile').onchange = async e => {
   const f = e.target.files[0]; if (!f) return;
@@ -369,91 +500,40 @@ $('impFile').onchange = async e => {
     const data = JSON.parse(await f.text()); if (data.app !== 'puente-senas' || !Array.isArray(data.signs)) throw 0;
     let n = 0;
     for (const s of data.signs) {
-      if (typeof s.name !== 'string' || !Array.isArray(s.samples) || !s.samples.length || s.samples.some(x => x.length !== VEC)) continue;
+      if (typeof s.name !== 'string' || !Array.isArray(s.samples)) continue;
       const key = norm(s.name); if (!key) continue;
-      const samples = s.samples.map(x => Float32Array.from(x));
+      const samples = s.samples.filter(x => x.length === VEC).map(x => Float32Array.from(x));
       const clip = typeof s.clip === 'string' && s.clip.startsWith('data:video/') ? await (await fetch(s.clip)).blob() : null;
-      const sign = { key, name: s.name.slice(0, 40), samples, th: threshold(samples), clip };
+      if (!samples.length && !clip) continue;
+      const sign = { key, name: s.name.slice(0, 40), samples, th: samples.length ? threshold(samples) : 1, clip };
       await putSign(sign); SIGNS = SIGNS.filter(x => x.key !== key).concat(sign); n++;
     }
-    renderSigns(); msg('expMsg', `Se cargaron ${n} señas.`);
-  } catch { msg('expMsg', 'Ese archivo no es una copia de señas de esta app.', true); }
+    renderSigns(); note('expMsg', `Se cargaron ${n} señas.`);
+  } catch { note('expMsg', 'Ese archivo no es una copia de señas de esta app.', true); }
   e.target.value = '';
 };
 
-/* ---------- Responder: de texto o voz a señas ---------- */
-// La lengua de señas no usa artículos ni el verbo ser/estar como enlace: se omiten en vez de mostrarlos escritos.
-const OMITIR = new Set('el la los las un una unos unas es esta estoy estas son estan soy eres somos estamos'.split(' '));
-function plan(text) {
-  const hasQ = /[¿?]/.test(text), tilde = w => /[áéíóú]/i.test(w);
-  const raw = text.split(/\s+/).map(w => [norm(w), w.replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, '')]).filter(x => x[0] && !x[0].includes(' ')), ws = raw.map(x => x[0]);
-  const byKey = new Map();
-  for (const d of DICT) for (const k of [d.name, ...d.alias]) byKey.set(norm(k), d);
-  for (const s of SIGNS) byKey.set(s.key, s);                      // las señas propias mandan sobre el diccionario
-  const out = [];
-  for (let i = 0; i < ws.length;) {
-    let hit = null;
-    for (let n = Math.min(4, ws.length - i); n > 0 && !hit; n--) {
-      const s = byKey.get(ws.slice(i, i + n).join(' '));
-      if (s && !(s.tilde && !(hasQ && s.tilde === 1) && !raw.slice(i, i + n).some(x => tilde(x[1])))) hit = { sign: s, text: s.name, n };
-    }
-    if (hit) { out.push(hit); i += hit.n; continue; }
-    const w = ws[i++]; if (OMITIR.has(w)) continue;
-    const letters = [...w].map(c => { const s = byKey.get(c); return media(s) ? s : null; });
-    if (w.length > 1 && letters.every(Boolean)) letters.forEach(s => out.push({ sign: s, text: s.name, of: raw[i - 1][1] || w }));
-    else out.push({ sign: null, text: raw[i - 1][1] || w });
-  }
-  return out;
+/* ---------- Hoja inferior, ajustes y arranque ---------- */
+function openSheet(pane) {
+  $('sheet').hidden = $('veil').hidden = false;
+  document.querySelectorAll('.tabs button').forEach(b => b.setAttribute('aria-selected', b.dataset.pane === pane));
+  for (const p of ['ensenar', 'senas', 'ajustes', 'ayuda']) $('pane-' + p).hidden = p !== pane;
+  $('sheet').classList.toggle('tall', pane === 'ayuda' || pane === 'ajustes');   // en Enseñar y Señas la cámara sigue a la vista
+  $('veil').style.background = pane === 'ensenar' || pane === 'senas' ? 'transparent' : '';
 }
-let playing = 0;
-async function playSeq(items) {
-  const run = ++playing, chips = $('repChips'), clip = $('clip'), word = $('clipWord');
-  chips.replaceChildren(...items.map(it => { const c = document.createElement('span'); c.className = 'chip' + (media(it.sign) ? '' : ' txt'); c.textContent = it.text; return c; }));
-  $('player').hidden = false; $('player').scrollIntoView({ block: 'center', behavior: 'smooth' });
-  for (let i = 0; i < items.length && run === playing; i++) {
-    const it = items[i]; [...chips.children].forEach((c, k) => c.classList.toggle('on', k === i));
-    $('clipCap').textContent = it.of ? `${it.text} · ${it.of}` : it.text;
-    if (media(it.sign)) {
-      word.hidden = true; clip.hidden = false;
-      const own = !it.sign.url, url = own ? URL.createObjectURL(it.sign.clip) : it.sign.url;
-      clip.style.transform = own ? '' : 'none';                     // los videos propios son de cámara frontal (espejo); los del diccionario no
-      clip.src = url; clip.playbackRate = clip.defaultPlaybackRate = it.sign.letra ? 1.7 : 1;
-      await new Promise(ok => { clip.onended = clip.onerror = ok; clip.play().catch(ok); setTimeout(ok, 7000); });
-      if (own) URL.revokeObjectURL(url);
-    } else { clip.hidden = true; word.hidden = false; word.textContent = it.text; await sleep(1400); }
-    await sleep(180);
-  }
-  if (run === playing) [...chips.children].forEach(c => c.classList.remove('on'));
-}
-$('playBtn').onclick = () => {
-  const items = plan($('reply').value);
-  if (!items.length) return msg('repMsg', 'Escribe o dicta primero tu respuesta.', true);
-  const miss = items.filter(i => !media(i.sign)).length;
-  msg('repMsg', miss ? `${miss} ${miss === 1 ? 'palabra no tiene' : 'palabras no tienen'} seña guardada: ${miss === 1 ? 'se muestra escrita' : 'se muestran escritas'}.` : 'Mostrando la respuesta en señas.');
-  playSeq(items);
-};
-$('bigBtn').onclick = () => { const t = $('reply').value.trim(); if (!t) return msg('repMsg', 'Escribe primero tu respuesta.', true); $('bigText').textContent = t; $('bigText').hidden = false; };
-$('bigText').onclick = () => { $('bigText').hidden = true; };
-const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-if (!SR) $('dictBtn').hidden = true;
-$('dictBtn').onclick = () => {
-  const r = new SR(); r.lang = 'es-CO'; r.interimResults = false;
-  msg('repMsg', 'Te escucho: habla ahora.'); $('dictBtn').disabled = true;
-  r.onresult = e => { $('reply').value = ($('reply').value + ' ' + e.results[0][0].transcript).trim(); msg('repMsg', 'Listo. Revisa el texto y pulsa “Mostrar en señas”.'); };
-  r.onerror = () => msg('repMsg', 'No pude escuchar. Revisa el permiso del micrófono o escribe la respuesta.', true);
-  r.onend = () => { $('dictBtn').disabled = false; };
-  r.start();
-};
-
-/* ---------- Pestañas, instalación y arranque ---------- */
-function tab(name) {
-  document.querySelectorAll('nav button').forEach(b => b.setAttribute('aria-selected', b.dataset.tab === name));
-  for (const t of ['entender', 'responder', 'senas', 'ayuda']) $('tab-' + t).hidden = t !== name;
-  $('camCard').hidden = name === 'responder' || name === 'ayuda';
-  if (name !== 'responder') playing++;
-  window.scrollTo(0, 0);
-}
-document.querySelectorAll('nav button').forEach(b => b.onclick = () => tab(b.dataset.tab));
+function closeSheet() { $('sheet').hidden = $('veil').hidden = true; }
+$('menuBtn').onclick = () => openSheet('ensenar');
+$('sheetX').onclick = $('veil').onclick = closeSheet;
+document.querySelectorAll('.tabs button').forEach(b => b.onclick = () => openSheet(b.dataset.pane));
+const paintSens = () => { const v = +$('sens').value; RECO.o.factor = v / 100; $('sensLab').textContent = v < 90 ? 'estricta' : v > 115 ? 'flexible' : 'normal'; };
+$('sens').oninput = paintSens; paintSens();
+$('useModel').checked = useModel; $('useModelRow').hidden = !MODEL;
+$('useModel').onchange = () => { useModel = $('useModel').checked; try { localStorage.setItem('ps.modelo', useModel ? '1' : '0'); } catch {} renderSigns(); };
+const PAL = DICT.filter(d => !d.letra), LET = DICT.filter(d => d.letra);
+const chipsDe = list => list.map(d => { const b = el('button', null, d.name); b.onclick = () => playSeq([{ sign: d, text: d.name }]); return b; });
+$('dictH').textContent = `Señas para responder (${PAL.length})`;
+$('dictChips').replaceChildren(...chipsDe(PAL)); $('letChips').replaceChildren(...chipsDe(LET));
+$('dictCred').textContent = DICT.length ? 'No hay señas para los números 0, 2 y 3. Videos de los conjuntos LSC50 y LSC70, licencia CC BY 4.0.' : 'No se pudo cargar el diccionario incluido.';
 let installEvt = null;
 window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEvt = e; $('installBtn').hidden = false; });
 $('installBtn').onclick = () => { installEvt?.prompt(); installEvt = null; $('installBtn').hidden = true; };
@@ -461,16 +541,11 @@ if ('serviceWorker' in navigator && location.protocol !== 'file:') navigator.ser
 const env = [];
 if (!window.isSecureContext) env.push('La cámara solo funciona en una página segura (https).');
 if (!navigator.mediaDevices?.getUserMedia) env.push('Este navegador no da acceso a la cámara. Usa Chrome, Edge o Safari actualizados.');
-if (!db) env.push('Este navegador no permite guardar las señas (¿modo privado?).');
-if (env.length) { $('envMsg').hidden = false; $('envMsg').textContent = env.join(' '); }
-renderSigns();
-const PAL = DICT.filter(d => !d.letra), LET = DICT.filter(d => d.letra);
-$('dictH').textContent = `Señas disponibles (${PAL.length})`;
-const chipsDe = list => list.map(d => { const b = document.createElement('button'); b.className = 'chip'; b.textContent = d.name; b.onclick = () => playSeq([{ sign: d, text: d.name }]); return b; });
-$('dictChips').replaceChildren(...chipsDe(PAL)); $('letChips').replaceChildren(...chipsDe(LET));
-$('dictCred').textContent = DICT.length ? 'Videos: conjuntos de datos LSC50 (Flórez-Sierra y otros, 2024) y LSC70 (Muñoz Galindez, Villota Coral y Vargas-Canas, 2024), licencia CC BY 4.0, recortados y convertidos para esta app.' : 'No se pudo cargar el diccionario incluido.';
+if (!db) env.push('Este navegador no permite guardar tus señas (¿modo privado?).');
+if (env.length) $('camMsg').textContent = env.join(' ');
+renderSigns(); emptyState();
 let seen = false; try { seen = localStorage.getItem('ps.visto') === '1'; localStorage.setItem('ps.visto', '1'); } catch {}
-tab(seen ? 'responder' : 'ayuda');
+if (!seen) openSheet('ayuda');
 Object.assign(window, { __t: { onHands, plan, frameHands, segVec, threshold, RECO, MODEL, get SIGNS() { return SIGNS; }, set SIGNS(v) { SIGNS = v; renderSigns(); }, sentence } });
 </script>
 </body>

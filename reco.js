@@ -94,6 +94,7 @@ export class Model {
     this.cols = j.cols; this.mu = f(j.mu, 1000); this.sd = f(j.sd, 1000); this.h = j.h; this.n = j.cols.length;
     this.W1 = f(j.W1, j.esc); this.b1 = f(j.b1, j.esc); this.W2 = f(j.W2, j.esc); this.b2 = f(j.b2, j.esc);
     this.signs = j.clases.map(c => ({ key: 'm:' + c, name: NOMBRE[c] || c }));
+    this.cen = j.cen ? f(j.cen, j.escCen) : null; this.rad = j.rad || null;
   }
   // Devuelve la seña más probable y su probabilidad (0 a 1).
   predict(vec) {
@@ -103,34 +104,40 @@ export class Model {
     let best = 0, bv = -Infinity, mx = -Infinity; const out = new Float32Array(k);
     for (let c = 0; c < k; c++) { let t = b2[c]; const o = c * h; for (let j = 0; j < h; j++) t += W2[o + j] * a[j]; out[c] = t; if (t > bv) { bv = t; best = c; } if (t > mx) mx = t; }
     let sum = 0; for (let c = 0; c < k; c++) sum += Math.exp(out[c] - mx);
-    return { s: this.signs[best], p: 1 / sum };
+    let far = 0;                                       // qué tan lejos está de los ejemplos de esa seña (1 = en el borde)
+    if (this.cen) { let d = 0; const o = best * n; for (let i = 0; i < n; i++) { const e = z[i] - this.cen[o + i]; d += e * e; } far = Math.sqrt(d) / this.rad[best]; }
+    return { s: this.signs[best], p: 1 / sum, far };
   }
 }
 // Reconocedor continuo: prueba ventanas de varias duraciones que terminan "ahora".
 export class Recognizer {
-  constructor(bank, opts = {}) { this.bank = bank; this.model = null; this.o = { wins: [800, 1200, 1700, 2300], every: 200, need: 2, factor: 1, pmin: 0.85, ...opts }; this.reset(); }
-  reset() { this.buf = []; this.cand = null; this.n = 0; this.last = null; this.lastCheck = -1e9; this.seen = -1e9; }
+  constructor(bank, opts = {}) { this.bank = bank; this.model = null; this.o = { wins: [800, 1200, 1700, 2300], every: 200, need: 2, needModel: 4, factor: 1, pmin: 0.9, far: 1.05, ...opts }; this.reset(); }
+  reset() { this.buf = []; this.cand = null; this.n = 0; this.last = null; this.lastCheck = -1e9; this.seen = -1e9; this.pending = null; }
   // t en milisegundos; hands = frameHands(...). Devuelve la seña reconocida en este instante, o null.
+  // this.pending = { s, n, need } mientras una seña se está confirmando (para mostrar el avance).
   push(t, hands) {
     const o = this.o, maxW = o.wins[o.wins.length - 1];
     if (hands.length) this.seen = t;
     this.buf.push({ t, h: hands }); while (this.buf.length && this.buf[0].t < t - maxW) this.buf.shift();
-    if (t - this.seen > 700) { this.last = null; this.cand = null; this.n = 0; this.buf = []; return null; }
+    if (t - this.seen > 700) { this.last = null; this.cand = null; this.n = 0; this.buf = []; this.pending = null; return null; }
     if (t - this.lastCheck < o.every || (!this.bank.length && !this.model)) return null; this.lastCheck = t;
-    let best = null, mb = null;
+    let best = null, mb = null, votes = 0, wins = 0;
     for (const w of o.wins) {
       const fr = this.buf.filter(b => b.t >= t - w); if (fr.length < 6 || fr[0].t > t - w * 0.8) continue;
       const withH = fr.filter(b => b.h.length); if (withH.length < fr.length * 0.7) continue;
       const v = segVec(withH.map(b => b.h)); if (!v) continue;
       const r = this.bank.length ? classify(v, this.bank, o.factor) : null; if (r && (!best || r.d / r.s.th < best.d / best.s.th)) best = r;
-      if (this.model) { const m = this.model.predict(v); if (!mb || m.p > mb.p) mb = m; }
+      if (this.model) { const m = this.model.predict(v); wins++; if (m.s.key !== 'm:nada' && m.far <= o.far) { votes++; if (!mb || m.p > mb.p) mb = m; } }
     }
-    // Las señas enseñadas por la persona mandan; si no hay ninguna clara, decide el modelo cuando está seguro.
-    if (!best && mb && mb.p >= Math.min(0.97, 1 - (1 - o.pmin) * o.factor)) best = mb;
-    if (!best) { this.cand = null; this.n = 0; return null; }
+    // Las señas enseñadas por la persona mandan. Si no hay ninguna clara, decide el modelo, pero solo cuando está
+    // seguro y la mayoría de las ventanas ve una seña (y no "nada").
+    if (!best && mb && votes * 2 >= wins && mb.p >= Math.min(0.985, 1 - (1 - o.pmin) * o.factor)) best = mb;
+    if (!best) { this.cand = null; this.n = 0; this.pending = null; return null; }
     if (this.cand === best.s.key) this.n++; else { this.cand = best.s.key; this.n = 1; }
-    const need = best.p != null ? o.need + 1 : o.need;        // al modelo se le pide un instante más de estabilidad
-    if (this.n >= need && this.last !== best.s.key) { this.last = best.s.key; return best.s; }
+    const need = best.p != null ? o.needModel : o.need;       // al modelo se le pide más tiempo sosteniendo la seña
+    if (this.last === best.s.key) { this.pending = null; return null; }
+    this.pending = { s: best.s, n: this.n, need };
+    if (this.n >= need) { this.last = best.s.key; this.pending = null; return best.s; }
     return null;
   }
 }
