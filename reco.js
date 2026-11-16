@@ -86,9 +86,29 @@ export function classify(vec, bank, factor = 1, ratio = 0.9) {
   if (second < Infinity && best.d > second * ratio) return null;
   return best;
 }
+// Modelo entrenado (red pequeña de una capa oculta) con el banco LSC70: abecedario, números y diez palabras.
+const NOMBRE = { NN: 'Ñ', MIL: 'mil', MILLON: 'millón', ANNOS: 'años', BUENAS: 'buenas', DIAS: 'días', TARDES: 'tardes', NOCHES: 'noches', GUSTAR: 'gustar', HOLA: 'hola', LICOR: 'licor', NOMBRE: 'nombre', YO: 'yo' };
+export class Model {
+  constructor(j) {
+    const f = (a, s) => Float32Array.from(a, x => x / s);
+    this.cols = j.cols; this.mu = f(j.mu, 1000); this.sd = f(j.sd, 1000); this.h = j.h; this.n = j.cols.length;
+    this.W1 = f(j.W1, j.esc); this.b1 = f(j.b1, j.esc); this.W2 = f(j.W2, j.esc); this.b2 = f(j.b2, j.esc);
+    this.signs = j.clases.map(c => ({ key: 'm:' + c, name: NOMBRE[c] || c }));
+  }
+  // Devuelve la seña más probable y su probabilidad (0 a 1).
+  predict(vec) {
+    const { n, h, cols, mu, sd, W1, b1, W2, b2 } = this, z = new Float32Array(n), a = new Float32Array(h), k = this.signs.length;
+    for (let i = 0; i < n; i++) z[i] = (vec[cols[i]] - mu[i]) / sd[i];
+    for (let j = 0; j < h; j++) { let t = b1[j]; const o = j * n; for (let i = 0; i < n; i++) t += W1[o + i] * z[i]; a[j] = t > 0 ? t : 0; }
+    let best = 0, bv = -Infinity, mx = -Infinity; const out = new Float32Array(k);
+    for (let c = 0; c < k; c++) { let t = b2[c]; const o = c * h; for (let j = 0; j < h; j++) t += W2[o + j] * a[j]; out[c] = t; if (t > bv) { bv = t; best = c; } if (t > mx) mx = t; }
+    let sum = 0; for (let c = 0; c < k; c++) sum += Math.exp(out[c] - mx);
+    return { s: this.signs[best], p: 1 / sum };
+  }
+}
 // Reconocedor continuo: prueba ventanas de varias duraciones que terminan "ahora".
 export class Recognizer {
-  constructor(bank, opts = {}) { this.bank = bank; this.o = { wins: [800, 1200, 1700, 2300], every: 200, need: 2, factor: 1, ...opts }; this.reset(); }
+  constructor(bank, opts = {}) { this.bank = bank; this.model = null; this.o = { wins: [800, 1200, 1700, 2300], every: 200, need: 2, factor: 1, pmin: 0.85, ...opts }; this.reset(); }
   reset() { this.buf = []; this.cand = null; this.n = 0; this.last = null; this.lastCheck = -1e9; this.seen = -1e9; }
   // t en milisegundos; hands = frameHands(...). Devuelve la seña reconocida en este instante, o null.
   push(t, hands) {
@@ -96,17 +116,21 @@ export class Recognizer {
     if (hands.length) this.seen = t;
     this.buf.push({ t, h: hands }); while (this.buf.length && this.buf[0].t < t - maxW) this.buf.shift();
     if (t - this.seen > 700) { this.last = null; this.cand = null; this.n = 0; this.buf = []; return null; }
-    if (t - this.lastCheck < o.every || !this.bank.length) return null; this.lastCheck = t;
-    let best = null;
+    if (t - this.lastCheck < o.every || (!this.bank.length && !this.model)) return null; this.lastCheck = t;
+    let best = null, mb = null;
     for (const w of o.wins) {
       const fr = this.buf.filter(b => b.t >= t - w); if (fr.length < 6 || fr[0].t > t - w * 0.8) continue;
       const withH = fr.filter(b => b.h.length); if (withH.length < fr.length * 0.7) continue;
       const v = segVec(withH.map(b => b.h)); if (!v) continue;
-      const r = classify(v, this.bank, o.factor); if (r && (!best || r.d / r.s.th < best.d / best.s.th)) best = r;
+      const r = this.bank.length ? classify(v, this.bank, o.factor) : null; if (r && (!best || r.d / r.s.th < best.d / best.s.th)) best = r;
+      if (this.model) { const m = this.model.predict(v); if (!mb || m.p > mb.p) mb = m; }
     }
+    // Las señas enseñadas por la persona mandan; si no hay ninguna clara, decide el modelo cuando está seguro.
+    if (!best && mb && mb.p >= Math.min(0.97, 1 - (1 - o.pmin) * o.factor)) best = mb;
     if (!best) { this.cand = null; this.n = 0; return null; }
     if (this.cand === best.s.key) this.n++; else { this.cand = best.s.key; this.n = 1; }
-    if (this.n >= o.need && this.last !== best.s.key) { this.last = best.s.key; return best.s; }
+    const need = best.p != null ? o.need + 1 : o.need;        // al modelo se le pide un instante más de estabilidad
+    if (this.n >= need && this.last !== best.s.key) { this.last = best.s.key; return best.s; }
     return null;
   }
 }

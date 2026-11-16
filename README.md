@@ -13,5 +13,7 @@ El reconocimiento de manos usa MediaPipe Hand Landmarker (Apache 2.0), incluido 
 
 ## Reconocimiento por cámara
 
-- `reco.js` convierte los puntos de las manos en un vector y lo compara con las señas enseñadas en “Mis señas”.
-- `herramientas/evaluar.mjs` mide el reconocimiento con los datos de manos de LSC50. Con una persona que no está en el banco acierta cerca de 4 de cada 10 señas (6 de cada 10 con un clasificador más complejo), por eso la cámara no reconoce de fábrica las señas del diccionario: solo las que cada persona le enseña.
+- `reco.js` convierte los puntos de las manos en un vector. Con él reconoce de dos maneras: comparando con las señas enseñadas en “Mis señas”, y con un modelo entrenado (`senas/modelo.json`).
+- El modelo se entrenó con el banco LSC70 (70 personas): abecedario, números 1 y 4 a 10, mil, millón y diez palabras. Evaluado con personas que no vio al entrenar, acierta 83 de cada 100 señas; cuando solo responde si está seguro (lo que hace la app), acierta 91 de cada 100 y calla en 2 de cada 10.
+- Para rehacerlo: extraer los puntos de las manos de las imágenes de LSC70, `node herramientas/rasgos70.mjs` para generar los vectores y entrenar una red de una capa oculta (160 neuronas). `herramientas/probar_modelo.mjs` comprueba el recorrido completo.
+- `herramientas/evaluar.mjs` mide el reconocimiento con LSC50 (5 personas): no alcanza para reconocer esas 50 señas de fábrica, por eso no están en el modelo.

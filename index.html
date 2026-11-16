@@ -127,6 +127,7 @@ nav button[aria-selected=true]{background:var(--teal);color:var(--onTeal)}
     </div>
     <div class="row">
       <label><input type="checkbox" id="autoSpeak" checked> Decir cada seña en voz alta</label>
+      <label><input type="checkbox" id="useModel" checked> Reconocer abecedario, números y palabras básicas (en pruebas)</label>
     </div>
     <label>Exigencia <input type="range" id="sens" min="60" max="150" value="100"> <span id="sensLab" class="sub"></span></label>
     <p class="sub" id="entMsg"></p>
@@ -178,9 +179,9 @@ nav button[aria-selected=true]{background:var(--teal);color:var(--onTeal)}
     <ol class="steps">
       <li><b>Responder.</b> Escribe o dicta tu respuesta y la app la muestra seña por seña en video. Ya trae 55 señas básicas de la Lengua de Señas Colombiana (saludos, cortesía, familia, sentimientos y preguntas), el abecedario y varios números. Lo que no tenga seña lo deletrea letra por letra.</li>
       <li><b>Agregar señas.</b> En “Mis señas”, una persona que sepa lengua de señas graba cada seña nueva cinco veces. Queda disponible para responder y para que la cámara la reconozca.</li>
-      <li><b>Entender.</b> La persona sorda hace señas frente a la cámara. La app reconoce las señas que se le han enseñado, arma la frase y la lee en voz alta.</li>
+      <li><b>Entender.</b> La persona sorda hace señas frente a la cámara. La app reconoce el abecedario, los números y algunas palabras básicas, además de las señas que se le enseñen; arma la frase y la lee en voz alta.</li>
     </ol>
-    <p class="note"><b>Importante.</b> La app muestra las señas una tras otra, en el orden en que escribes: no aplica la gramática propia de la lengua de señas ni las expresiones de la cara. Usa frases cortas y sencillas. Sirve para conversaciones básicas y no reemplaza a un intérprete en trámites médicos, legales o de emergencia. La cámara, por ahora, solo reconoce las señas grabadas en “Mis señas”.</p>
+    <p class="note"><b>Importante.</b> La app muestra las señas una tras otra, en el orden en que escribes: no aplica la gramática propia de la lengua de señas ni las expresiones de la cara. Usa frases cortas y sencillas. Sirve para conversaciones básicas y no reemplaza a un intérprete en trámites médicos, legales o de emergencia. La cámara reconoce el abecedario, varios números y diez palabras básicas (en pruebas), además de las señas grabadas en “Mis señas”.</p>
     <p class="sub">Los videos del diccionario provienen de los conjuntos de datos LSC50 (Flórez-Sierra y otros, Scientific Data, 2024) y LSC70 (Muñoz Galindez, Villota Coral y Vargas-Canas, Universidad del Cauca, 2024), publicados con licencia Creative Commons Atribución 4.0. Fueron recortados y convertidos para esta app; sus autores no participan en ella.</p>
     <p class="sub">Consejos: buena luz, fondo sencillo, las manos completas dentro de la imagen y la misma distancia que usaste al enseñar la seña.</p>
   </section>
@@ -195,7 +196,7 @@ nav button[aria-selected=true]{background:var(--teal);color:var(--onTeal)}
 <div id="bigText" hidden></div>
 
 <script type="module">
-import { frameHands, segVec, threshold, Recognizer, VEC } from './reco.js';
+import { frameHands, segVec, threshold, Recognizer, Model, VEC } from './reco.js';
 const $ = id => document.getElementById(id);
 const msg = (id, t, err) => { const e = $(id); e.textContent = t; e.classList.toggle('err', !!err); };
 const norm = s => s.toLowerCase().replace(/ñ/g, '\u0001').normalize('NFD').replace(/\u0001/g, 'ñ').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9ñ ]/g, ' ').replace(/\s+/g, ' ').trim();
@@ -217,6 +218,8 @@ const delSign = k => db && tx('readwrite', st => st.delete(k));
 
 const WIN = 1600;                                   // duración de cada toma al enseñar una seña (ms)
 const RECO = new Recognizer([]);
+const MODEL = await fetch('senas/modelo.json').then(r => r.json()).then(j => new Model(j)).catch(() => null);
+let useModel = true; try { useModel = localStorage.getItem('ps.modelo') !== '0'; } catch {}
 
 /* ---------- Cámara y detector ---------- */
 let landmarker = null, stream = null, buf = [], nHands = -1;
@@ -290,6 +293,8 @@ $('backBtn').onclick = () => { words.pop(); RECO.last = null; paintFrase(); };
 $('clearBtn').onclick = () => { words = []; RECO.last = null; $('now').textContent = ''; paintFrase(); };
 const paintSens = () => { const v = +$('sens').value; RECO.o.factor = v / 100; $('sensLab').textContent = v < 90 ? 'estricta' : v > 115 ? 'flexible' : 'normal'; };
 $('sens').oninput = paintSens; paintSens();
+$('useModel').checked = useModel; $('useModel').hidden = !MODEL;
+$('useModel').onchange = () => { useModel = $('useModel').checked; try { localStorage.setItem('ps.modelo', useModel ? '1' : '0'); } catch {} renderSigns(); };
 
 /* ---------- Mis señas: enseñar ---------- */
 let recording = false;
@@ -333,7 +338,7 @@ $('recBtn').onclick = async () => {
   } finally { recording = false; nHands = -1; $('recBtn').disabled = false; $('camBadge').hidden = true; $('count').hidden = true; buf = []; }
 };
 function renderSigns() {
-  RECO.bank = SIGNS.filter(s => s.samples.length >= 3);
+  RECO.bank = SIGNS.filter(s => s.samples.length >= 3); RECO.model = useModel ? MODEL : null;
   const box = $('signList'); box.replaceChildren();
   $('listH').textContent = SIGNS.length ? `Señas guardadas (${SIGNS.length})` : 'Señas guardadas';
   if (!SIGNS.length) { const p = document.createElement('p'); p.className = 'sub'; p.textContent = 'Todavía no hay señas. Graba la primera arriba.'; box.append(p); }
@@ -345,7 +350,8 @@ function renderSigns() {
     del.onclick = async () => { if (!confirm(`¿Borrar la seña “${s.name}”?`)) return; await delSign(s.key); SIGNS = SIGNS.filter(x => x !== s); renderSigns(); };
     d.append(b, sm, see, del); box.append(d);
   }
-  $('entMsg').textContent = RECO.bank.length ? `La cámara reconoce ${RECO.bank.length} ${RECO.bank.length === 1 ? 'seña' : 'señas'}: ${RECO.bank.map(s => s.name).join(', ')}.` : 'La cámara todavía no reconoce ninguna seña: solo reconoce las que se le enseñan en “Mis señas”. Los videos del diccionario sirven para responder.';
+  $('entMsg').textContent = (RECO.model ? 'La cámara reconoce el abecedario, los números 1 y 4 a 10, mil, millón y las palabras hola, yo, nombre, buenas, días, tardes, noches, años, gustar y licor. Haz cada seña con calma y sostenla un segundo. Está en pruebas: puede equivocarse, sobre todo entre señas parecidas. ' : '') +
+    (RECO.bank.length ? `También reconoce las señas que le enseñaste: ${RECO.bank.map(s => s.name).join(', ')}.` : 'Para otras señas, enséñaselas en “Mis señas”.');
 }
 
 /* ---------- Copia de seguridad (incluye los videos) ---------- */
@@ -465,7 +471,7 @@ $('dictChips').replaceChildren(...chipsDe(PAL)); $('letChips').replaceChildren(.
 $('dictCred').textContent = DICT.length ? 'Videos: conjuntos de datos LSC50 (Flórez-Sierra y otros, 2024) y LSC70 (Muñoz Galindez, Villota Coral y Vargas-Canas, 2024), licencia CC BY 4.0, recortados y convertidos para esta app.' : 'No se pudo cargar el diccionario incluido.';
 let seen = false; try { seen = localStorage.getItem('ps.visto') === '1'; localStorage.setItem('ps.visto', '1'); } catch {}
 tab(seen ? 'responder' : 'ayuda');
-Object.assign(window, { __t: { onHands, plan, frameHands, segVec, threshold, RECO, get SIGNS() { return SIGNS; }, set SIGNS(v) { SIGNS = v; renderSigns(); }, sentence } });
+Object.assign(window, { __t: { onHands, plan, frameHands, segVec, threshold, RECO, MODEL, get SIGNS() { return SIGNS; }, set SIGNS(v) { SIGNS = v; renderSigns(); }, sentence } });
 </script>
 </body>
 </html>
