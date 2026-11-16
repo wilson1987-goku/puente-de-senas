@@ -1,5 +1,5 @@
 // Guarda la app y el reconocimiento de manos en el dispositivo para que funcione sin conexion.
-const CACHE = 'puente-senas-v5';
+const CACHE = 'puente-senas-v6';
 const FILES = ['./', 'index.html', 'reco.js', 'manifest.webmanifest', 'icon.svg', 'icon-192.png', 'icon-512.png', 'icon-180.png', 'fonts/sora.woff2', 'fonts/manrope.woff2'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES))); self.skipWaiting(); });
 self.addEventListener('activate', e => {

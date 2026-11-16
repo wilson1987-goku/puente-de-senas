@@ -3,20 +3,21 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Puente de Señas</title>
+<title>InclusivApp</title>
+<meta name="apple-mobile-web-app-title" content="InclusivApp">
 <meta name="description" content="Una conversación entre señas y voz: la cámara lee las señas y tu respuesta se muestra en lengua de señas.">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icon-180.png">
-<meta name="theme-color" content="#0A0A0B">
+<meta name="theme-color" content="#0B1230">
 <style>
 /* Una sola pantalla, como una videollamada con traductor: arriba la cámara, en medio la conversación, abajo el teclado.
    Lo demás (enseñar señas, diccionario, ajustes, ayuda) vive en una hoja que sube desde abajo. */
 @font-face{font-family:"Sora";src:url(fonts/sora.woff2) format("woff2");font-weight:100 800;font-display:swap}
 @font-face{font-family:"Manrope";src:url(fonts/manrope.woff2) format("woff2");font-weight:200 800;font-display:swap}
 :root{
-  --bg:#0A0A0B; --s1:#141416; --s2:#1E1E22; --line:#2C2C33; --ink:#F4F4F1; --dim:#9A9AA3;
-  --lime:#C8F53C; --onLime:#12160A; --violet:#9C8CFF; --bad:#FF6B7F;
+  --bg:#0B1230; --s1:#111B45; --s2:#1A2658; --line:#2C3C7C; --ink:#F4F6FF; --dim:#A3AED6;
+  --lime:#FFD23F; --onLime:#14235A; --turq:#2EC4B6; --violet:#9C8CFF; --bad:#FF6B7F;
   --display:"Sora","Avenir Next","Segoe UI",system-ui,sans-serif;
   --text:"Manrope","Segoe UI",system-ui,-apple-system,Roboto,sans-serif;
   color-scheme:dark;
@@ -40,13 +41,14 @@ button.ic svg,.send svg{width:22px;height:22px;fill:none;stroke:currentColor;str
 #stage video,#stage canvas{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 #video,#overlay{transform:scaleX(-1)}
 .topbar{position:absolute;left:12px;right:12px;top:calc(10px + env(safe-area-inset-top));display:flex;gap:8px;align-items:center;z-index:3}
-.brand{font:800 19px/1 var(--display);letter-spacing:-.04em;padding:11px 14px;border-radius:999px}
+.brand{font:800 17px/1 var(--display);letter-spacing:-.04em;padding:8px 14px 8px 8px;border-radius:999px;display:flex;gap:8px;align-items:center}
+.brand img{border-radius:50%}
 .brand i{font-style:normal;color:var(--lime)}
 .pill{font:700 12.5px/1 var(--text);padding:9px 12px;border-radius:999px;display:flex;gap:7px;align-items:center}
 .pill::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--dim)}
-.pill.on::before{background:var(--lime);box-shadow:0 0 10px var(--lime)}
+.pill.on::before{background:var(--turq);box-shadow:0 0 10px var(--turq)}
 .topbar .sp{flex:1}
-#cover{position:absolute;inset:0;display:grid;place-content:center;justify-items:center;gap:14px;padding:70px 26px 20px;text-align:center;background:radial-gradient(120% 90% at 50% 0,#23233A,#0A0A0B 70%)}
+#cover{position:absolute;inset:0;display:grid;place-content:center;justify-items:center;gap:14px;padding:70px 26px 20px;text-align:center;background:radial-gradient(120% 90% at 50% 0,#1F3A8A,#0B1230 72%)}
 #cover h2{font-size:clamp(24px,7vw,32px);font-weight:800;max-width:14ch}
 #cover h2 i{font-style:normal;color:var(--lime)}
 #cover p{color:var(--dim);font-size:14px;max-width:34ch}
@@ -55,7 +57,7 @@ button.ic svg,.send svg{width:22px;height:22px;fill:none;stroke:currentColor;str
 /* Lectura en vivo */
 #live{position:absolute;left:10px;right:10px;bottom:10px;border-radius:22px;padding:10px 10px 10px 14px;display:grid;grid-template-columns:1fr auto;gap:4px 8px;align-items:center;z-index:2}
 #cand{grid-column:1/-1;display:flex;gap:10px;align-items:center;min-height:30px;font:800 24px/1 var(--display);letter-spacing:-.03em}
-#cand .ring{width:22px;height:22px;border-radius:50%;background:conic-gradient(var(--lime) calc(var(--p,0)*1turn),rgba(255,255,255,.18) 0);-webkit-mask:radial-gradient(circle 6.5px,transparent 98%,#000);mask:radial-gradient(circle 6.5px,transparent 98%,#000)}
+#cand .ring{width:22px;height:22px;border-radius:50%;background:conic-gradient(var(--turq) calc(var(--p,0)*1turn),rgba(255,255,255,.18) 0);-webkit-mask:radial-gradient(circle 6.5px,transparent 98%,#000);mask:radial-gradient(circle 6.5px,transparent 98%,#000)}
 #cand.ok{color:var(--lime)} #cand.idle{font:600 13.5px/1.3 var(--text);letter-spacing:0;color:var(--dim)}
 #frase{font:700 18px/1.25 var(--display);min-height:1.25em;word-break:break-word;max-height:3.75em;overflow:auto}
 #frase:empty::before{content:"La frase en señas se arma aquí";color:var(--dim);font:500 14px/1.3 var(--text)}
@@ -85,11 +87,11 @@ button.ic svg,.send svg{width:22px;height:22px;fill:none;stroke:currentColor;str
 .msg{max-width:86%;border-radius:20px;padding:10px 13px 9px;display:flex;flex-direction:column;gap:6px;animation:in .25s ease-out}
 .msg b{font:600 11px/1 var(--text);letter-spacing:.09em;text-transform:uppercase;opacity:.7}
 .msg p{font:600 17px/1.3 var(--text);overflow-wrap:anywhere}
-.msg.them{align-self:flex-start;background:var(--lime);color:var(--onLime);border-bottom-left-radius:6px}
+.msg.them{align-self:flex-start;background:var(--turq);color:#06262A;border-bottom-left-radius:6px}
 .msg.me{align-self:flex-end;background:var(--s2);border:1px solid var(--line);border-bottom-right-radius:6px}
 .msg .mini{display:flex;gap:6px}
 .msg .mini button{font-size:12.5px;padding:6px 10px;background:rgba(255,255,255,.08);border-color:transparent}
-.msg.them .mini button{background:rgba(0,0,0,.12);color:var(--onLime)}
+.msg.them .mini button{background:rgba(0,0,0,.14);color:#06262A}
 @keyframes in{from{opacity:0;transform:translateY(8px)}}
 
 /* Teclado de respuesta */
@@ -140,7 +142,7 @@ button.ic svg,.send svg{width:22px;height:22px;fill:none;stroke:currentColor;str
       <button class="lime" id="camStart">Encender cámara</button>
     </div>
     <div class="topbar">
-      <span class="brand glass">puente<i>.</i></span>
+      <span class="brand glass"><img src="icon.svg" alt="" width="22" height="22"><span>inclusiv<i>app</i></span></span>
       <span class="pill glass" id="camBadge" hidden></span>
       <span class="sp"></span>
       <button class="ic glass" id="menuBtn" aria-label="Señas, ajustes y ayuda"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg></button>
@@ -215,7 +217,7 @@ button.ic svg,.send svg{width:22px;height:22px;fill:none;stroke:currentColor;str
     </div>
 
     <div class="pane" id="pane-ayuda" hidden>
-      <h3>Una conversación, dos idiomas</h3>
+      <h3>InclusivApp: una conversación, dos idiomas</h3>
       <div class="how">
         <div><p><b>La otra persona hace señas</b> frente a la cámara. La app las lee, arma la frase y, al tocar ✓, la pasa a la conversación y la dice en voz alta.</p></div>
         <div><p><b>Tú respondes escribiendo o dictando.</b> Arriba aparece tu respuesta seña por seña; lo que no tenga seña se deletrea.</p></div>
@@ -223,7 +225,7 @@ button.ic svg,.send svg{width:22px;height:22px;fill:none;stroke:currentColor;str
       </div>
       <p class="warn" id="helpReco"></p>
       <p class="warn">Las señas se muestran una tras otra, en el orden en que escribes: no se aplica la gramática propia de la lengua de señas ni las expresiones de la cara. Usa frases cortas. No reemplaza a un intérprete en citas médicas, trámites legales o emergencias.</p>
-      <p class="sub">Videos y datos de entrenamiento: conjuntos LSC50 (Flórez-Sierra y otros, Scientific Data, 2024) y LSC70 (Muñoz Galindez, Villota Coral y Vargas-Canas, Universidad del Cauca, 2024), licencia Creative Commons Atribución 4.0. Fueron recortados y convertidos para esta app; sus autores no participan en ella.</p>
+      <p class="sub">Videos y datos de entrenamiento: conjuntos LSC50 (Flórez-Sierra y otros, Scientific Data, 2024) y LSC70 (Muñoz Galindez, Villota Coral y Vargas-Canas, Universidad del Cauca, 2024), licencia Creative Commons Atribución 4.0. Fueron recortados y convertidos para esta app; sus autores no participan en ella. Los colores y el icono se inspiran en la bandera sorda (azul oscuro, turquesa y amarillo), diseñada por Arnaud Balard y adoptada por la Federación Mundial de Sordos en 2023; el dibujo del icono es propio.</p>
     </div>
   </section>
 </div>
@@ -307,7 +309,7 @@ function drawHands(lms) {
   const w = cv.width = cv.clientWidth, h = cv.height = cv.clientHeight; g.clearRect(0, 0, w, h);
   const vw = video.videoWidth || 4, vh = video.videoHeight || 3, sc = Math.max(w / vw, h / vh), ox = (w - vw * sc) / 2, oy = (h - vh * sc) / 2;
   const P = p => [ox + p.x * vw * sc, oy + p.y * vh * sc];
-  g.lineWidth = 3; g.strokeStyle = '#C8F53C'; g.fillStyle = '#fff';
+  g.lineWidth = 3; g.strokeStyle = '#2EC4B6'; g.fillStyle = '#FFD23F';
   for (const lm of lms) {
     g.beginPath(); for (const [a, b] of BONES) { g.moveTo(...P(lm[a])); g.lineTo(...P(lm[b])); } g.stroke();
     for (const p of lm) { g.beginPath(); g.arc(...P(p), 3.2, 0, 7); g.fill(); }

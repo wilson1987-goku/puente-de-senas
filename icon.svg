@@ -1,8 +1,14 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" fill="#0A0A0B"/>
-  <path d="M132 112h248a56 56 0 0 1 56 56v150a56 56 0 0 1-56 56H236l-84 62v-62h-20a56 56 0 0 1-56-56V168a56 56 0 0 1 56-56Z" fill="#C8F53C"/>
-  <g fill="none" stroke="#12160A" stroke-width="26" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M214 262v-78M256 254v-96M298 258v-82M338 270v-52"/>
-    <path d="M214 240l-32-30M182 210c0 72 22 112 76 112 52 0 80-26 80-70"/>
+  <!-- Mano abierta con los colores de la bandera sorda: azul oscuro, turquesa y amarillo. Dibujo propio. -->
+  <rect width="512" height="512" fill="#14235A"/>
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <g stroke="#FFD23F" stroke-width="86">
+      <path d="M256 340 118 268M256 340 170 132M256 340V98M256 340 342 132M256 340 404 222"/>
+    </g>
+    <circle cx="256" cy="344" r="104" fill="#FFD23F"/>
+    <g stroke="#2EC4B6" stroke-width="52">
+      <path d="M256 340 118 268M256 340 170 132M256 340V98M256 340 342 132M256 340 404 222"/>
+    </g>
+    <circle cx="256" cy="344" r="86" fill="#2EC4B6"/>
   </g>
 </svg>

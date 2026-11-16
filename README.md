@@ -1,4 +1,4 @@
-# Puente de Señas
+# InclusivApp
 
 App web instalable para conversar entre lengua de señas y voz.
 
@@ -22,3 +22,7 @@ El reconocimiento de manos usa MediaPipe Hand Landmarker (Apache 2.0), incluido 
 ## Diseño
 
 Una sola pantalla tipo conversación: arriba la cámara (o el video de la respuesta en señas), en medio los mensajes y abajo el teclado. Enseñar señas, el diccionario, los ajustes y la ayuda están en una hoja que sube desde abajo.
+
+## Nombre e icono
+
+La app se llama InclusivApp (antes Puente de Señas; el repositorio y la dirección conservan el nombre anterior). Su icono y sus colores se inspiran en la bandera sorda, diseñada por Arnaud Balard y adoptada por la Federación Mundial de Sordos (WFD) en 2023. El dibujo del icono es propio; el diseño oficial de la bandera está registrado y sus derechos pertenecen a la WFD.
